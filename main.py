@@ -2,6 +2,7 @@ import random
 import tkinter as tk
 import os, sys
 from tkinter import font
+import time
 
 class Sudoku:
     """
@@ -14,7 +15,7 @@ class Sudoku:
         """
         Checks if given number isn't in row, column and 3x3 square
         """
-        L1, L2, L3 = board[r], [board[i][c] for i in range(9)], [board[i][j] for i in range(r//3*3, r//3*3+3) for j in range(c//3*3, c//3*3+3)]
+        L1, L2, L3 = [board[r][i] for i in range(9) if i != c], [board[i][c] for i in range(9) if i != r], [board[i][j] for i in range(r//3*3, r//3*3+3) for j in range(c//3*3, c//3*3+3) if i != r and j != c]
         return False if number in L1 or number in L2 or number in L3 else True
 
     def find_empty_cell(self, board: list):
@@ -97,16 +98,17 @@ class App:
     """
     def __init__(self) -> None:
         # aditional data
-        # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg)
+        # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
+        # 4 - active cells bg, 5 - invalid cells bg)
+        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#16F1DC", "#D14513"]]
         self.current_theme = 0
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555"]]
         self.sudoku = Sudoku()
         self.board, self.board_first = self.sudoku.generate_sudoku()
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
         # list for current block
-        self.current_coords = [0, 0]
+        self.current_coords = [-1, -1]
         # initializing the app
         self.master = tk.Tk()
         self.master.title("Sudoku")
@@ -145,7 +147,7 @@ class App:
                                              fill=self.themes_list[self.current_theme][3], tags=(f"block{i}_{j}"))
                 self.canvas.create_text(100+j*block_size+block_size//2+x_delay, 200+i*block_size+block_size//2+y_delay,
                                         anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
-                                        tags=f"block{i}_{j}text")
+                                        state='disabled', tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
         button_positions = [120, 240, 360, 480]
         button_pos_y = 670
@@ -175,7 +177,18 @@ class App:
         """
         Command connected with all cells
         """
-        print(x, y)
+        
+        n = self.themes_list[self.current_theme][3] if self.sudoku.is_valid(self.board, self.board[self.current_coords[0]][self.current_coords[1]], self.current_coords[0], self.current_coords[1]) else self.themes_list[self.current_theme][5]
+        self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
+        self.current_coords[0], self.current_coords[1] = x, y
+        self.update_board(self.themes_list[self.current_theme][4], x, y)
+
+    def number_pressed(self, number: int) -> None:
+        if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
+            self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
+        else:
+            self.update_board(self.themes_list[self.current_theme][5], self.current_coords[0], self.current_coords[1])
+        self.board[self.current_coords[0]][self.current_coords[1]] = number
 
     def update_board(self, color: str, a: int = -1, b: int = -1) -> None:
         """
@@ -189,8 +202,9 @@ class App:
                     self.canvas.itemconfig(f"block{i}_{j}", fill=color)
         else:
             if self.board[a][b]!=0:
-                self.canvas.itemconfig(f"block{a}_{b}", fill=color)
-            self.canvas.itemconfig(f"block{i}_{j}text", text=str(self.board[i][j]))
+                self.canvas.itemconfig(f"block{a}_{b}text", text=str(self.board[a][b]))
+            self.canvas.itemconfig(f"block{a}_{b}", fill=color)
+            
 
 
 if __name__ == "__main__":
