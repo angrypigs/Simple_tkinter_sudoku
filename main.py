@@ -1,6 +1,7 @@
 import random
 import tkinter as tk
 import os, sys
+from tkinter import font
 
 class Sudoku:
     """
@@ -26,10 +27,10 @@ class Sudoku:
                     return row, col
         return None
 
-    def undo_move() -> list:
+    def undo_move(self, ) -> list:
         pass
 
-    def hint_move(initial: list, current: list) -> list:
+    def hint_move(self, initial: list, current: list) -> list:
         """
         Fills random one cell in current board with valid number from initial board
         """
@@ -41,7 +42,7 @@ class Sudoku:
         hinted_one = random.choice(empty)
         current[hinted_one[0]][hinted_one[1]] = initial[hinted_one[0]][hinted_one[1]]
 
-    def restart(initial: list, current: list) -> list:
+    def restart(self, initial: list, current: list) -> list:
         """
         Copying cells from initial board to current one
         """
@@ -50,7 +51,7 @@ class Sudoku:
                 current[i][j] = initial[i][j]
         return current
     
-    def erase(i: int, j: int, initial: list, current: list) -> list:
+    def erase(self, i: int, j: int, initial: list, current: list) -> list:
         """
         Erases given cell if it isn't filled in initial board
         """
@@ -97,8 +98,10 @@ class App:
     def __init__(self) -> None:
         # aditional data
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg)
+        self.current_theme = 0
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555"]]
-        self.Sudoku = Sudoku()
+        self.sudoku = Sudoku()
+        self.board, self.board_first = self.sudoku.generate_sudoku()
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
@@ -112,14 +115,14 @@ class App:
         self.canvas = tk.Canvas(self.master, height=self.height, width=self.width, bd=0, highlightthickness=0, bg="#0F2435")
         self.canvas.place(x=0, y=0)
         # create the background
-        self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[0][0], outline="")
+        self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
         # create the borders
-        self.canvas.create_rectangle(0, 0, border_width, self.height, fill=self.themes_list[0][1], outline="")
-        self.canvas.create_rectangle(self.width-border_width, 0, self.width, self.height, fill=self.themes_list[0][1], outline="")
-        self.canvas.create_rectangle(border_width, 0, self.width-border_width, border_width, fill=self.themes_list[0][1], outline="")
-        self.canvas.create_rectangle(border_width, self.height-border_width, self.width-border_width, self.height, fill=self.themes_list[0][1], outline="")
+        self.canvas.create_rectangle(0, 0, border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.width-border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(border_width, 0, self.width-border_width, border_width, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(border_width, self.height-border_width, self.width-border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
         # create the grid background and cells and binding them to function
-        self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[0][2], width=3)
+        self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[self.current_theme][2], width=3)
         link = lambda x, y: (lambda p: self.block_clicked(x, y))
         block_size = 44
         x_delay, y_delay = 0, 0
@@ -137,7 +140,12 @@ class App:
                     x_delay = 2
                 else:
                     x_delay = 0
-                self.canvas.create_rectangle(100+j*block_size+x_delay, 200+i*block_size+y_delay, 100+j*block_size+block_size+x_delay, 200+i*block_size+block_size+y_delay, fill=self.themes_list[0][3], tags=(f"block{i}_{j}"))
+                self.canvas.create_rectangle(100+j*block_size+x_delay, 200+i*block_size+y_delay, 
+                                             100+j*block_size+block_size+x_delay, 200+i*block_size+block_size+y_delay, 
+                                             fill=self.themes_list[self.current_theme][3], tags=(f"block{i}_{j}"))
+                self.canvas.create_text(100+j*block_size+block_size//2+x_delay, 200+i*block_size+block_size//2+y_delay,
+                                        anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
+                                        tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
         button_positions = [120, 240, 360, 480]
         button_pos_y = 670
@@ -145,28 +153,44 @@ class App:
         # create buttons
         self.canvas.create_rectangle(button_positions[0]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[0]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[0][1], width=3, tags=("undo_btn"))
+                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("undo_btn"))
         
         self.canvas.create_rectangle(button_positions[1]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[1]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[0][1], width=3, tags=("erase_btn"))
+                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("erase_btn"))
         
         self.canvas.create_rectangle(button_positions[2]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[2]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[0][1], width=3, tags=("hint_btn"))
+                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("hint_btn"))
         
         self.canvas.create_rectangle(button_positions[3]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[0][1], width=3, tags=("restart_btn"))
+                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("restart_btn"))
         # bind buttons to functions
 
-
+        self.update_board(self.themes_list[self.current_theme][3])
         self.master.mainloop()
 
     def block_clicked(self, x: int, y: int) -> None:
+        """
+        Command connected with all cells
+        """
         print(x, y)
 
-    
+    def update_board(self, color: str, a: int = -1, b: int = -1) -> None:
+        """
+        Updates number and color of specified cell, if it is given; if not, it updates all cells
+        """
+        if a == b == -1:
+            for i in range(9):
+                for j in range(9):
+                    if self.board[i][j]!=0:
+                        self.canvas.itemconfig(f"block{i}_{j}text", text=str(self.board[i][j]))
+                    self.canvas.itemconfig(f"block{i}_{j}", fill=color)
+        else:
+            if self.board[a][b]!=0:
+                self.canvas.itemconfig(f"block{a}_{b}", fill=color)
+            self.canvas.itemconfig(f"block{i}_{j}text", text=str(self.board[i][j]))
 
 
 if __name__ == "__main__":
