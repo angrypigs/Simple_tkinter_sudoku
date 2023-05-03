@@ -168,27 +168,32 @@ class App:
         self.canvas.create_rectangle(button_positions[3]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
                                      fill=self.themes_list[self.current_theme][1], width=3, tags=("restart_btn"))
-        # bind buttons to functions
-
+        # update cells with board numbers
         self.update_board(self.themes_list[self.current_theme][3])
+        # bind keyboard numbers with command
+        link2 = lambda xp: (lambda p: self.number_pressed(xp))
+        for i in range(1, 10):
+            self.master.bind(str(i), link2(i))
         self.master.mainloop()
 
     def block_clicked(self, x: int, y: int) -> None:
         """
         Command connected with all cells
         """
-        
+
         n = self.themes_list[self.current_theme][3] if self.sudoku.is_valid(self.board, self.board[self.current_coords[0]][self.current_coords[1]], self.current_coords[0], self.current_coords[1]) else self.themes_list[self.current_theme][5]
         self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
         self.current_coords[0], self.current_coords[1] = x, y
         self.update_board(self.themes_list[self.current_theme][4], x, y)
 
     def number_pressed(self, number: int) -> None:
-        if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
-            self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
-        else:
-            self.update_board(self.themes_list[self.current_theme][5], self.current_coords[0], self.current_coords[1])
-        self.board[self.current_coords[0]][self.current_coords[1]] = number
+        if self.board[self.current_coords[0]][self.current_coords[1]]==0:
+            self.board[self.current_coords[0]][self.current_coords[1]] = number
+            if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
+                self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
+            else:
+                self.update_board(self.themes_list[self.current_theme][5], self.current_coords[0], self.current_coords[1])
+        
 
     def update_board(self, color: str, a: int = -1, b: int = -1) -> None:
         """
@@ -197,13 +202,13 @@ class App:
         if a == b == -1:
             for i in range(9):
                 for j in range(9):
+                    self.canvas.itemconfig(f"block{i}_{j}", fill=color)
                     if self.board[i][j]!=0:
                         self.canvas.itemconfig(f"block{i}_{j}text", text=str(self.board[i][j]))
-                    self.canvas.itemconfig(f"block{i}_{j}", fill=color)
         else:
+            self.canvas.itemconfig(f"block{a}_{b}", fill=color)
             if self.board[a][b]!=0:
                 self.canvas.itemconfig(f"block{a}_{b}text", text=str(self.board[a][b]))
-            self.canvas.itemconfig(f"block{a}_{b}", fill=color)
             
 
 
