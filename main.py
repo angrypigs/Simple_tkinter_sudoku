@@ -84,10 +84,18 @@ class App:
         x_delay, y_delay = 0, 0
         for i in range(9):
             for j in range(9):
-                if i%3==0:
-                    y_delay += 2
-                if j%3==0:
-                    x_delay += 2
+                if i>5:
+                    y_delay = 4
+                elif i>2:
+                    y_delay = 2
+                else:
+                    y_delay = 0
+                if j>5:
+                    x_delay = 4
+                elif j>2:
+                    x_delay = 2
+                else:
+                    x_delay = 0
                 self.canvas.create_rectangle(100+j*block_size+x_delay, 300+i*block_size+y_delay, 100+j*block_size+block_size+x_delay, 300+i*block_size+block_size+y_delay, fill=self.themes_list[0][4], tags=(f"block{i}_{j}"))
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
 
