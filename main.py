@@ -46,13 +46,14 @@ class Sudoku:
         """
         board = [[0 for i in range(9)] for j in range(9)]
         self.generate_template(board)
+        board_before = board
         places = [[i, j] for i in range(9) for j in range(9)]
         Difficulty_list = [25, 35, 45, 55]
         for i in range(Difficulty_list[level]):
             k = self.random.choice(places)
             board[k[0]][k[1]] = 0
             places.remove(k)
-        return board
+        return board, board_before
         
 
 
@@ -61,10 +62,16 @@ class App:
     Main Sudoku App class
     """
     def __init__(self) -> None:
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#000000", "#555555"]]
+        # aditional data
+        # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg)
+        self.Sudoku = Sudoku()
+        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555"]]
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
+        # list for current block
+        self.current_coords = [0, 0]
+        # initializing the app
         self.master = tk.Tk()
         self.master.title("Sudoku")
         self.master.geometry(f"{self.width}x{self.height}")
@@ -78,7 +85,8 @@ class App:
         self.canvas.create_rectangle(self.width-border_width, 0, self.width, self.height, fill=self.themes_list[0][1], outline="")
         self.canvas.create_rectangle(border_width, 0, self.width-border_width, border_width, fill=self.themes_list[0][1], outline="")
         self.canvas.create_rectangle(border_width, self.height-border_width, self.width-border_width, self.height, fill=self.themes_list[0][1], outline="")
-        self.canvas.create_rectangle(100, 300, 100+self.grid_size, 300+self.grid_size, fill=self.themes_list[0][2], width=3)
+        # create the grid background and cells and binding them to function
+        self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[0][2], width=3)
         link = lambda x, y: (lambda p: self.block_clicked(x, y))
         block_size = 44
         x_delay, y_delay = 0, 0
@@ -96,14 +104,21 @@ class App:
                     x_delay = 2
                 else:
                     x_delay = 0
-                self.canvas.create_rectangle(100+j*block_size+x_delay, 300+i*block_size+y_delay, 100+j*block_size+block_size+x_delay, 300+i*block_size+block_size+y_delay, fill=self.themes_list[0][4], tags=(f"block{i}_{j}"))
+                self.canvas.create_rectangle(100+j*block_size+x_delay, 200+i*block_size+y_delay, 100+j*block_size+block_size+x_delay, 200+i*block_size+block_size+y_delay, fill=self.themes_list[0][3], tags=(f"block{i}_{j}"))
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
-
+        button_positions = [120, 240, 360, 480]
+        button_pos_y = 670
+        button_size = [80, 60]
+        # undo button
+        self.canvas.create_rectangle(button_positions[0]-button_size[0]//2, button_pos_y-button_size[1]//2, button_positions[0]+button_size[0]//2, button_pos_y+button_size[1]//2, fill=self.themes_list[0][1], width=3)
+        
 
         self.master.mainloop()
 
     def block_clicked(self, x: int, y: int) -> None:
         print(x, y)
+
+    
 
 
 if __name__ == "__main__":
