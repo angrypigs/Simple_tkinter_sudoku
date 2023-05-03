@@ -1,12 +1,13 @@
 import random
 import tkinter as tk
+import os, sys
 
 class Sudoku:
     """
     Sudoku functions class
     """
     def __init__(self) -> None:
-        self.random = __import__('random')
+        pass
 
     def is_valid(self, board: list, number: int, r: int, c: int) -> bool:
         """
@@ -25,13 +26,45 @@ class Sudoku:
                     return row, col
         return None
 
+    def undo_move() -> list:
+        pass
+
+    def hint_move(initial: list, current: list) -> list:
+        """
+        Fills random one cell in current board with valid number from initial board
+        """
+        empty = []
+        for i in range(9):
+            for j in range(9):
+                if current[i][j] == 0:
+                    empty.append([i, j])
+        hinted_one = random.choice(empty)
+        current[hinted_one[0]][hinted_one[1]] = initial[hinted_one[0]][hinted_one[1]]
+
+    def restart(initial: list, current: list) -> list:
+        """
+        Copying cells from initial board to current one
+        """
+        for i in range(9):
+            for j in range(9):
+                current[i][j] = initial[i][j]
+        return current
+    
+    def erase(i: int, j: int, initial: list, current: list) -> list:
+        """
+        Erases given cell if it isn't filled in initial board
+        """
+        if initial[i][j] == 0:
+            current[i][j] = 0
+        return current
+
     def generate_template(self, board: list) -> None:
         empty = self.find_empty_cell(board)
         if not empty:
             return True
         row, col = empty
         nums = [i for i in range(1, 10)]
-        self.random.shuffle(nums)
+        random.shuffle(nums)
         for i in nums:
             if self.is_valid(board, i, row, col):
                 board[row][col] = i
@@ -50,7 +83,7 @@ class Sudoku:
         places = [[i, j] for i in range(9) for j in range(9)]
         Difficulty_list = [25, 35, 45, 55]
         for i in range(Difficulty_list[level]):
-            k = self.random.choice(places)
+            k = random.choice(places)
             board[k[0]][k[1]] = 0
             places.remove(k)
         return board, board_before
@@ -64,8 +97,8 @@ class App:
     def __init__(self) -> None:
         # aditional data
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg)
-        self.Sudoku = Sudoku()
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555"]]
+        self.Sudoku = Sudoku()
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
@@ -109,9 +142,24 @@ class App:
         button_positions = [120, 240, 360, 480]
         button_pos_y = 670
         button_size = [80, 60]
-        # undo button
-        self.canvas.create_rectangle(button_positions[0]-button_size[0]//2, button_pos_y-button_size[1]//2, button_positions[0]+button_size[0]//2, button_pos_y+button_size[1]//2, fill=self.themes_list[0][1], width=3)
+        # create buttons
+        self.canvas.create_rectangle(button_positions[0]-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     button_positions[0]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.themes_list[0][1], width=3, tags=("undo_btn"))
         
+        self.canvas.create_rectangle(button_positions[1]-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     button_positions[1]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.themes_list[0][1], width=3, tags=("erase_btn"))
+        
+        self.canvas.create_rectangle(button_positions[2]-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     button_positions[2]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.themes_list[0][1], width=3, tags=("hint_btn"))
+        
+        self.canvas.create_rectangle(button_positions[3]-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.themes_list[0][1], width=3, tags=("restart_btn"))
+        # bind buttons to functions
+
 
         self.master.mainloop()
 
