@@ -99,16 +99,18 @@ class App:
     def __init__(self) -> None:
         # aditional data
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
-        # 4 - active cells bg, 5 - invalid cells bg)
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#16F1DC", "#D14513"]]
+        # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg)
+        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#16F1DC", "#D14513", "#14D9C6"]]
         self.current_theme = 0
         self.sudoku = Sudoku()
-        self.board, self.board_first = self.sudoku.generate_sudoku()
+        self.board, self.board_first = self.sudoku.generate_sudoku(3)
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
         # list for current block
         self.current_coords = [-1, -1]
+        # matrix for current cell colors
+        self.cells_colors = [[3 for i in range(9)] for j in range(9)]
         # initializing the app
         self.master = tk.Tk()
         self.master.title("Sudoku")
@@ -169,47 +171,57 @@ class App:
                                      button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
                                      fill=self.themes_list[self.current_theme][1], width=3, tags=("restart_btn"))
         # update cells with board numbers
-        self.update_board(self.themes_list[self.current_theme][3])
+        self.update_board()
         # bind keyboard numbers with command
         link2 = lambda xp: (lambda p: self.number_pressed(xp))
         for i in range(1, 10):
             self.master.bind(str(i), link2(i))
         self.master.mainloop()
 
+    def find_all_same(self, x: int, y: int) -> None:
+        """
+        Colors given cell in color ,,4'' and all the cells with same value in color ,,6''
+        """
+        self.cells_colors[x][y] = 4
+        if self.board[x][y]!=0:
+            for i in range(9):
+                for j in range(9):
+                    if x!=i and y!=j and self.cells_colors[i][j] != 5 and self.board[i][j] == self.board[x][y]:
+                        self.cells_colors[i][j] = 6
+        self.update_board()
+
     def block_clicked(self, x: int, y: int) -> None:
         """
         Command connected with all cells
         """
-
-        n = self.themes_list[self.current_theme][3] if self.sudoku.is_valid(self.board, self.board[self.current_coords[0]][self.current_coords[1]], self.current_coords[0], self.current_coords[1]) else self.themes_list[self.current_theme][5]
-        self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
+        for i in range(9):
+            for j in range(9):
+                if self.cells_colors[i][j] != 5:
+                    self.cells_colors[i][j] = 3
+        self.update_board()
         self.current_coords[0], self.current_coords[1] = x, y
-        self.update_board(self.themes_list[self.current_theme][4], x, y)
+        self.find_all_same(x, y)
 
     def number_pressed(self, number: int) -> None:
         if self.board[self.current_coords[0]][self.current_coords[1]]==0:
             self.board[self.current_coords[0]][self.current_coords[1]] = number
             if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
-                self.update_board(self.themes_list[self.current_theme][3], self.current_coords[0], self.current_coords[1])
+                self.find_all_same(self.current_coords[0], self.current_coords[1])
             else:
-                self.update_board(self.themes_list[self.current_theme][5], self.current_coords[0], self.current_coords[1])
+                self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
+            self.update_board()
         
 
-    def update_board(self, color: str, a: int = -1, b: int = -1) -> None:
+    def update_board(self) -> None:
         """
-        Updates number and color of specified cell, if it is given; if not, it updates all cells
+        Updates numbers and colors of all cells if they are different
         """
-        if a == b == -1:
-            for i in range(9):
-                for j in range(9):
-                    self.canvas.itemconfig(f"block{i}_{j}", fill=color)
-                    if self.board[i][j]!=0:
-                        self.canvas.itemconfig(f"block{i}_{j}text", text=str(self.board[i][j]))
-        else:
-            self.canvas.itemconfig(f"block{a}_{b}", fill=color)
-            if self.board[a][b]!=0:
-                self.canvas.itemconfig(f"block{a}_{b}text", text=str(self.board[a][b]))
-            
+        for i in range(9):
+            for j in range(9):
+                if self.canvas.itemcget(f"block{i}_{j}", 'fill') != self.themes_list[self.current_theme][self.cells_colors[i][j]]:
+                    self.canvas.itemconfig(f"block{i}_{j}", fill=self.themes_list[self.current_theme][self.cells_colors[i][j]])
+                n = "" if self.board[i][j] == 0 else str(self.board[i][j])
+                self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
 
 if __name__ == "__main__":
