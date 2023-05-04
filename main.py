@@ -28,38 +28,6 @@ class Sudoku:
                     return row, col
         return None
 
-    def undo_move(self, ) -> list:
-        pass
-
-    def hint_move(self, initial: list, current: list) -> list:
-        """
-        Fills random one cell in current board with valid number from initial board
-        """
-        empty = []
-        for i in range(9):
-            for j in range(9):
-                if current[i][j] == 0:
-                    empty.append([i, j])
-        hinted_one = random.choice(empty)
-        current[hinted_one[0]][hinted_one[1]] = initial[hinted_one[0]][hinted_one[1]]
-
-    def restart(self, initial: list, current: list) -> list:
-        """
-        Copying cells from initial board to current one
-        """
-        for i in range(9):
-            for j in range(9):
-                current[i][j] = initial[i][j]
-        return current
-    
-    def erase(self, i: int, j: int, initial: list, current: list) -> list:
-        """
-        Erases given cell if it isn't filled in initial board
-        """
-        if initial[i][j] == 0:
-            current[i][j] = 0
-        return current
-
     def generate_template(self, board: list) -> None:
         empty = self.find_empty_cell(board)
         if not empty:
@@ -81,7 +49,7 @@ class Sudoku:
         """
         board = [[0 for i in range(9)] for j in range(9)]
         self.generate_template(board)
-        board_before = board
+        board_before = [i[:] for i in board]
         places = [[i, j] for i in range(9) for j in range(9)]
         Difficulty_list = [25, 35, 45, 55]
         for i in range(Difficulty_list[level]):
@@ -100,10 +68,11 @@ class App:
         # aditional data
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
         # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg)
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#16F1DC", "#D14513", "#14D9C6"]]
+        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA"]]
         self.current_theme = 0
         self.sudoku = Sudoku()
-        self.board, self.board_first = self.sudoku.generate_sudoku(3)
+        self.board, self.board_filled = self.sudoku.generate_sudoku(3)
+        self.board_first = [i[:] for i in self.board]
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
@@ -170,19 +139,80 @@ class App:
         self.canvas.create_rectangle(button_positions[3]-button_size[0]//2, button_pos_y-button_size[1]//2, 
                                      button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
                                      fill=self.themes_list[self.current_theme][1], width=3, tags=("restart_btn"))
+        # bind button rectangles to methods
+        self.canvas.tag_bind("undo_btn", "<Button-1>", self.undo_move)
+        self.canvas.tag_bind("erase_btn", "<Button-1>", self.erase)
+        self.canvas.tag_bind("hint_btn", "<Button-1>", self.hint_move)
+        self.canvas.tag_bind("restart_btn", "<Button-1>", self.restart)
         # update cells with board numbers
         self.update_board()
-        # bind keyboard numbers with command
+        # bind keyboard numbers with method
         link2 = lambda xp: (lambda p: self.number_pressed(xp))
         for i in range(1, 10):
             self.master.bind(str(i), link2(i))
         self.master.mainloop()
 
+    
+
+    def undo_move(self, event) -> None:
+        pass
+
+    def hint_move(self, event) -> None:
+        """
+        Fills random one cell in current board with valid number from initial one
+        """
+        empty = [[i, j] for i in range(9) for j in range(9) if self.board[i][j] == 0]
+        if len(empty) > 0:
+            hinted_one = random.choice(empty)
+            self.board[hinted_one[0]][hinted_one[1]] = self.board_filled[hinted_one[0]][hinted_one[1]]
+        self.current_coords = hinted_one.copy()
+        self.find_all_same(self.current_coords[0], self.current_coords[1])
+        self.update_board()
+
+    def restart(self, event) -> None:
+        """
+        Copying cells from initial board to current one
+        """
+        self.board = [i[:] for i in self.board_first]
+        self.clear_board()
+        self.current_coords = [-1, -1]
+        self.update_board()
+    
+    def erase(self, event) -> None:
+        """
+        Erases given cell if it isn't filled in initial board
+        """
+        if self.board_first[self.current_coords[0]][self.current_coords[1]] == 0:
+            self.board[self.current_coords[0]][self.current_coords[1]] = 0
+            self.clear_board()
+            self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 4
+            self.update_board()
+
+
+
+    def block_clicked(self, x: int, y: int) -> None:
+        """
+        Command connected with all cells
+        """
+        self.current_coords[0], self.current_coords[1] = x, y
+        self.find_all_same(x, y)
+
+    def number_pressed(self, number: int) -> None:
+        if self.current_coords!=[-1, -1] and self.board[self.current_coords[0]][self.current_coords[1]]==0:
+            self.board[self.current_coords[0]][self.current_coords[1]] = number
+            if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
+                self.find_all_same(self.current_coords[0], self.current_coords[1])
+            else:
+                self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
+            self.update_board()
+    
     def find_all_same(self, x: int, y: int) -> None:
         """
         Colors given cell in color ,,4'' and all the cells with same value in color ,,6''
         """
-        self.cells_colors[x][y] = 4
+        self.clear_board()
+        if self.cells_colors[x][y] != 5:
+            self.cells_colors[x][y] = 4
         if self.board[x][y]!=0:
             for i in range(9):
                 for j in range(9):
@@ -190,27 +220,14 @@ class App:
                         self.cells_colors[i][j] = 6
         self.update_board()
 
-    def block_clicked(self, x: int, y: int) -> None:
+    def clear_board(self) -> None:
         """
-        Command connected with all cells
+        Sets all cells colors to normal except for invalid ones
         """
         for i in range(9):
             for j in range(9):
                 if self.cells_colors[i][j] != 5:
                     self.cells_colors[i][j] = 3
-        self.update_board()
-        self.current_coords[0], self.current_coords[1] = x, y
-        self.find_all_same(x, y)
-
-    def number_pressed(self, number: int) -> None:
-        if self.board[self.current_coords[0]][self.current_coords[1]]==0:
-            self.board[self.current_coords[0]][self.current_coords[1]] = number
-            if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
-                self.find_all_same(self.current_coords[0], self.current_coords[1])
-            else:
-                self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
-            self.update_board()
-        
 
     def update_board(self) -> None:
         """
