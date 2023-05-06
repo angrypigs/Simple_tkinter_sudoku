@@ -3,6 +3,7 @@ import tkinter as tk
 import os, sys
 from tkinter import font
 import time
+from cryptography.fernet import Fernet
 
 class Sudoku:
     """
@@ -57,8 +58,6 @@ class Sudoku:
             board[k[0]][k[1]] = 0
             places.remove(k)
         return board, board_before
-        
-
 
 class App:
     """
@@ -69,10 +68,29 @@ class App:
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
         # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg)
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA"]]
-        self.current_theme = 0
         self.sudoku = Sudoku()
-        self.board, self.board_filled = self.sudoku.generate_sudoku(3)
-        self.board_first = [i[:] for i in self.board]
+        # checks if file save.txt exists; if yes, read game status from it, if no, generate new status and save it to file
+        if os.path.isfile(os.path.join(sys.path[0], "save.txt")):
+            file = open(os.path.join(sys.path[0], "save.txt"), "r")
+            L = [line.strip() for line in file.readlines()]
+            key2 = bytes(L[0], "UTF-8")
+            fernet2 = Fernet(key2)
+            save_current = fernet2.decrypt(bytes(L[1], "UTF-8")).decode()
+            save_first = fernet2.decrypt(bytes(L[2], "UTF-8")).decode()
+            save_filled = fernet2.decrypt(bytes(L[3], "UTF-8")).decode()
+            self.board = [[0 for i in range(9)] for j in range(9)]
+            self.board_first = [[0 for i in range(9)] for j in range(9)]
+            self.board_filled = [[0 for i in range(9)] for j in range(9)]
+            for i in range(len(save_current)):
+                self.board[i//9][i%9] = int(save_current[i])
+                self.board_first[i//9][i%9] = int(save_first[i])
+                self.board_filled[i//9][i%9] = int(save_filled[i])
+        else:
+            self.board, self.board_filled = self.sudoku.generate_sudoku(3)
+            self.board_first = [i[:] for i in self.board]
+            self.save_data()
+        
+        self.current_theme = 0
         self.width, self.height = 600, 800
         self.grid_size = 400
         border_width = 10
@@ -144,6 +162,7 @@ class App:
         self.canvas.tag_bind("erase_btn", "<Button-1>", self.erase)
         self.canvas.tag_bind("hint_btn", "<Button-1>", self.hint_move)
         self.canvas.tag_bind("restart_btn", "<Button-1>", self.restart)
+        self.save_data()
         # update cells with board numbers
         self.update_board()
         # bind keyboard numbers with method
@@ -165,9 +184,10 @@ class App:
         if len(empty) > 0:
             hinted_one = random.choice(empty)
             self.board[hinted_one[0]][hinted_one[1]] = self.board_filled[hinted_one[0]][hinted_one[1]]
-        self.current_coords = hinted_one.copy()
-        self.find_all_same(self.current_coords[0], self.current_coords[1])
-        self.update_board()
+            self.current_coords = hinted_one.copy()
+            self.find_all_same(self.current_coords[0], self.current_coords[1])
+            self.update_board()
+            self.save_data()
 
     def restart(self, event) -> None:
         """
@@ -177,6 +197,7 @@ class App:
         self.clear_board()
         self.current_coords = [-1, -1]
         self.update_board()
+        self.save_data()
     
     def erase(self, event) -> None:
         """
@@ -187,6 +208,7 @@ class App:
             self.clear_board()
             self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 4
             self.update_board()
+            self.save_data()
 
 
 
@@ -205,6 +227,7 @@ class App:
             else:
                 self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
             self.update_board()
+            self.save_data()
     
     def find_all_same(self, x: int, y: int) -> None:
         """
@@ -240,6 +263,37 @@ class App:
                 n = "" if self.board[i][j] == 0 else str(self.board[i][j])
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
+    def save_data(self) -> None:
+        """
+        Saving encrypted game status to save.txt
+        """
+        key = Fernet.generate_key()
+        file = open(os.path.join(sys.path[0], "save.txt"), "w")
+        file.write(str(key, "UTF-8")+"\n")
+        fernet = Fernet(key)
+        save_current = ""
+        for i in range(9):
+            for j in range(9):
+                save_current+=str(self.board[i][j])
+        save_first = ""
+        for i in range(9):
+            for j in range(9):
+                save_first+=str(self.board_first[i][j])
+        save_filled = ""
+        for i in range(9):
+            for j in range(9):
+                save_filled+=str(self.board_filled[i][j])
+        file.write(str(fernet.encrypt(save_current.encode()), "UTF-8")+"\n")
+        file.write(str(fernet.encrypt(save_first.encode()), "UTF-8")+"\n")
+        file.write(str(fernet.encrypt(save_filled.encode()), "UTF-8")+"\n")
+        file.close()
+        
+
+    def app_close(self) -> None:
+        self.save_data()
+        self.master.destroy()
+
+        
 
 if __name__ == "__main__":
     app = App()
