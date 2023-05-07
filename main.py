@@ -66,8 +66,9 @@ class App:
     def __init__(self) -> None:
         # aditional data
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
-        # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg)
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA"]]
+        # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg,
+        # 7 - font color, 8 - edited cells font color)
+        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
         self.sudoku = Sudoku()
         # checks if file save.txt exists; if yes, read game status from it, if no, generate new status and save it to file
         if os.path.isfile(os.path.join(sys.path[0], "save.txt")):
@@ -131,12 +132,13 @@ class App:
                     x_delay = 2
                 else:
                     x_delay = 0
+                font_color = 7 if self.board_first[i][j] != 0 else 8
                 self.canvas.create_rectangle(100+j*block_size+x_delay, 200+i*block_size+y_delay, 
                                              100+j*block_size+block_size+x_delay, 200+i*block_size+block_size+y_delay, 
                                              fill=self.themes_list[self.current_theme][3], tags=(f"block{i}_{j}"))
                 self.canvas.create_text(100+j*block_size+block_size//2+x_delay, 200+i*block_size+block_size//2+y_delay,
                                         anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
-                                        state='disabled', tags=f"block{i}_{j}text")
+                                        state='disabled', fill=self.themes_list[self.current_theme][font_color], tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
         button_positions = [120, 240, 360, 480]
         button_pos_y = 670
@@ -226,6 +228,7 @@ class App:
                 self.find_all_same(self.current_coords[0], self.current_coords[1])
             else:
                 self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
+            self.canvas.itemconfig(f"block{self.current_coords[0]}_{self.current_coords[1]}text", fill=self.themes_list[self.current_theme][8])
             self.update_board()
             self.save_data()
     
