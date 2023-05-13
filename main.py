@@ -70,27 +70,8 @@ class App:
         # 7 - font color, 8 - edited cells font color)
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
         self.sudoku = Sudoku()
-        # checks if file save.txt exists; if yes, read game status from it, if no, generate new status and save it to file
-        if os.path.isfile(os.path.join(sys.path[0], "save.txt")):
-            file = open(os.path.join(sys.path[0], "save.txt"), "r")
-            L = [line.strip() for line in file.readlines()]
-            key2 = bytes(L[0], "UTF-8")
-            fernet2 = Fernet(key2)
-            save_current = fernet2.decrypt(bytes(L[1], "UTF-8")).decode()
-            save_first = fernet2.decrypt(bytes(L[2], "UTF-8")).decode()
-            save_filled = fernet2.decrypt(bytes(L[3], "UTF-8")).decode()
-            self.board = [[0 for i in range(9)] for j in range(9)]
-            self.board_first = [[0 for i in range(9)] for j in range(9)]
-            self.board_filled = [[0 for i in range(9)] for j in range(9)]
-            for i in range(len(save_current)):
-                self.board[i//9][i%9] = int(save_current[i])
-                self.board_first[i//9][i%9] = int(save_first[i])
-                self.board_filled[i//9][i%9] = int(save_filled[i])
-        else:
-            self.board, self.board_filled = self.sudoku.generate_sudoku(3)
-            self.board_first = [i[:] for i in self.board]
-            self.save_data()
-        
+        # main variables (dimensions etc.)
+        self.flag_menu = False
         self.current_theme = 0
         self.width, self.height = 600, 800
         self.grid_size = 400
@@ -106,6 +87,34 @@ class App:
         self.master.resizable(False, False)
         self.canvas = tk.Canvas(self.master, height=self.height, width=self.width, bd=0, highlightthickness=0, bg="#0F2435")
         self.canvas.place(x=0, y=0)
+        # define three boards (current, initial one and correctly filled one)
+        self.board = [[0 for i in range(9)] for j in range(9)]
+        self.board_first = [[0 for i in range(9)] for j in range(9)]
+        self.board_filled = [[0 for i in range(9)] for j in range(9)]
+        # checks if file save.txt exists;
+        # if no, create one
+        if not os.path.isfile(os.path.join(sys.path[0], "save.txt")):
+            file = open(os.path.join(sys.path[0], "save.txt"), "w")
+            file.close()
+        # checks if file save.txt contains game save; 
+        # if yes, read game status from it, 
+        # if no, sets menu_flag to true to open main menu later
+        file = open(os.path.join(sys.path[0], "save.txt"), "r")
+        L = [line.strip() for line in file.readlines()]
+        file.close()
+        if len(L) > 0:
+            key2 = bytes(L[0], "UTF-8")
+            fernet2 = Fernet(key2)
+            save_current = fernet2.decrypt(bytes(L[1], "UTF-8")).decode()
+            save_first = fernet2.decrypt(bytes(L[2], "UTF-8")).decode()
+            save_filled = fernet2.decrypt(bytes(L[3], "UTF-8")).decode()
+            for i in range(len(save_current)):
+                self.board[i//9][i%9] = int(save_current[i])
+                self.board_first[i//9][i%9] = int(save_first[i])
+                self.board_filled[i//9][i%9] = int(save_filled[i])
+        else:
+            self.flag_menu = True
+        
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
         # create the borders
@@ -164,13 +173,15 @@ class App:
         self.canvas.tag_bind("erase_btn", "<Button-1>", self.erase)
         self.canvas.tag_bind("hint_btn", "<Button-1>", self.hint_move)
         self.canvas.tag_bind("restart_btn", "<Button-1>", self.restart)
-        self.save_data()
         # update cells with board numbers
         self.update_board()
         # bind keyboard numbers with method
         link2 = lambda xp: (lambda p: self.number_pressed(xp))
         for i in range(1, 10):
             self.master.bind(str(i), link2(i))
+        # init menu if save.txt doesn't contain game save
+        if self.flag_menu:
+            self.init_menu()
         self.master.mainloop()
 
     
@@ -270,11 +281,38 @@ class App:
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="", tags=("start_panel"))
         # create the borders
-        self.canvas.create_rectangle(0, 0, self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, self.width-self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
-        
+        self.canvas.create_rectangle(0, 0, self.border_width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, 
+                                     self.width-self.border_width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("start_panel"))
+        # create buttons
+        self.canvas.create_rectangle(self.width//2-100, self.height//2-60, 
+                                     self.width//2+100, self.height//2+60,
+                                     fill=self.themes_list[self.current_theme][1],
+                                     width=3, tags=("start_panel", "start_play_btn"))
+        self.canvas.create_rectangle(self.width//2-60, self.height-80,
+                                     self.width//2+60, self.height-40,
+                                     fill=self.themes_list[self.current_theme][1],
+                                     width=3, tags=("start_panel", "start_exit_btn"))
+        self.canvas.create_text(self.width//2, self.height//2, text="Play", 
+                                anchor='center', justify='center', 
+                                font=font.Font(family='Helvetica', size=36),
+                                state='disabled', tags=("start_panel"))
+        self.canvas.create_text(self.width//2, self.height-60, text="Exit", 
+                                anchor='center', justify='center', 
+                                font=font.Font(family='Helvetica', size=24),
+                                state='disabled', tags=("start_panel"))
+        # bind buttons
+
 
 
     def save_data(self) -> None:
