@@ -94,7 +94,7 @@ class App:
         self.current_theme = 0
         self.width, self.height = 600, 800
         self.grid_size = 400
-        border_width = 10
+        self.border_width = 10
         # list for current block
         self.current_coords = [-1, -1]
         # matrix for current cell colors
@@ -109,10 +109,10 @@ class App:
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
         # create the borders
-        self.canvas.create_rectangle(0, 0, border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(self.width-border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(border_width, 0, self.width-border_width, border_width, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(border_width, self.height-border_width, self.width-border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(0, 0, self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, self.width-self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
         # create the grid background and cells and binding them to function
         self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[self.current_theme][2], width=3)
         link = lambda x, y: (lambda p: self.block_clicked(x, y))
@@ -265,6 +265,17 @@ class App:
                     self.canvas.itemconfig(f"block{i}_{j}", fill=self.themes_list[self.current_theme][self.cells_colors[i][j]])
                 n = "" if self.board[i][j] == 0 else str(self.board[i][j])
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
+
+    def init_menu(self) -> None:
+        # create the background
+        self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="", tags=("start_panel"))
+        # create the borders
+        self.canvas.create_rectangle(0, 0, self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, self.width-self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="", tags=("start_panel"))
+        
+
 
     def save_data(self) -> None:
         """
