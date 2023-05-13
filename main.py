@@ -277,6 +277,19 @@ class App:
                 n = "" if self.board[i][j] == 0 else str(self.board[i][j])
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
+    def new_game(self, difficulty: int = 3) -> None:
+        self.board, self.board_filled = self.sudoku.generate_sudoku(difficulty)
+        self.board_first = [i[:] for i in self.board]
+        self.save_data()
+        for i in range(9):
+            for j in range(9):
+                font_color = 7 if self.board_first[i][j] != 0 else 8
+                self.canvas.itemconfig(f"block{i}_{j}text", fill=self.themes_list[self.current_theme][font_color])
+
+        self.update_board()
+        self.flag_menu = False
+        self.canvas.delete("start_panel")
+
     def init_menu(self) -> None:
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="", tags=("start_panel"))
@@ -312,7 +325,8 @@ class App:
                                 font=font.Font(family='Helvetica', size=24),
                                 state='disabled', tags=("start_panel"))
         # bind buttons
-
+        self.canvas.tag_bind("start_exit_btn", "<Button-1>", lambda event: self.app_close())
+        self.canvas.tag_bind("start_play_btn", "<Button-1>", lambda event: self.new_game())
 
 
     def save_data(self) -> None:
@@ -342,7 +356,8 @@ class App:
         
 
     def app_close(self) -> None:
-        self.save_data()
+        if not self.flag_menu:
+            self.save_data()
         self.master.destroy()
 
         
