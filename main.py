@@ -71,6 +71,7 @@ class App:
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
         self.sudoku = Sudoku()
         # main variables (dimensions etc.)
+        self.flag_notes = False
         self.flag_menu = False
         self.current_theme = 0
         self.width, self.height = 600, 800
@@ -153,27 +154,23 @@ class App:
         button_positions = [120, 240, 360, 480]
         button_pos_y = 670
         button_size = [80, 60]
+        button_tags = ["notes_btn", "erase_btn", "hint_btn", "restart_btn"]
+        buttons_unicodes = ["\u270E", "\u2716", "\U0001F4A1", "\u2B6F"]
         # create buttons
-        self.canvas.create_rectangle(button_positions[0]-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     button_positions[0]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("undo_btn"))
+        for i in range(4):
+            self.canvas.create_rectangle(button_positions[i]-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     button_positions[i]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.themes_list[self.current_theme][1], width=3, tags=(button_tags[i]))
+            self.canvas.create_text(button_positions[i], button_pos_y, 
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text=buttons_unicodes[i])
         
-        self.canvas.create_rectangle(button_positions[1]-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     button_positions[1]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("erase_btn"))
-        
-        self.canvas.create_rectangle(button_positions[2]-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     button_positions[2]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("hint_btn"))
-        
-        self.canvas.create_rectangle(button_positions[3]-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     button_positions[3]+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[self.current_theme][1], width=3, tags=("restart_btn"))
         # bind button rectangles to methods
-        self.canvas.tag_bind("undo_btn", "<Button-1>", self.undo_move)
-        self.canvas.tag_bind("erase_btn", "<Button-1>", self.erase)
-        self.canvas.tag_bind("hint_btn", "<Button-1>", self.hint_move)
-        self.canvas.tag_bind("restart_btn", "<Button-1>", self.restart)
+        self.canvas.tag_bind("notes_btn", "<Button-1>", lambda event: self.notes())
+        self.canvas.tag_bind("erase_btn", "<Button-1>", lambda event: self.erase())
+        self.canvas.tag_bind("hint_btn", "<Button-1>", lambda event: self.hint_move())
+        self.canvas.tag_bind("restart_btn", "<Button-1>", lambda event: self.restart())
         # update cells with board numbers
         self.update_board()
         # bind keyboard numbers with method
@@ -187,10 +184,13 @@ class App:
 
     
 
-    def undo_move(self, event) -> None:
-        pass
+    def notes(self) -> None:
+        """
+        Switches the notes mode
+        """
+        self.flag_notes = not self.flag_notes
 
-    def hint_move(self, event) -> None:
+    def hint_move(self) -> None:
         """
         Fills random one cell in current board with valid number from initial one
         """
@@ -203,7 +203,7 @@ class App:
             self.update_board()
             self.save_data()
 
-    def restart(self, event) -> None:
+    def restart(self) -> None:
         """
         Copying cells from initial board to current one
         """
@@ -213,7 +213,7 @@ class App:
         self.update_board()
         self.save_data()
     
-    def erase(self, event) -> None:
+    def erase(self) -> None:
         """
         Erases given cell if it isn't filled in initial board
         """
@@ -299,6 +299,7 @@ class App:
             if flags[1]: self.canvas.move("diff_panel", 0, -20)
             self.canvas.update()
             time.sleep(0.001)
+        self.canvas.delete("diff_panel")
         self.flag_menu = False
 
     def choose_difficulty(self) -> None:
