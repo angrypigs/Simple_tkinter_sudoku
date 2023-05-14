@@ -85,6 +85,7 @@ class App:
         self.master.title("Sudoku")
         self.master.geometry(f"{self.width}x{self.height}")
         self.master.resizable(False, False)
+        self.master.protocol("WM_DELETE_WINDOW", self.app_close)
         self.canvas = tk.Canvas(self.master, height=self.height, width=self.width, bd=0, highlightthickness=0, bg="#0F2435")
         self.canvas.place(x=0, y=0)
         # define three boards (current, initial one and correctly filled one)
@@ -278,6 +279,7 @@ class App:
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
     def new_game(self, difficulty: int = 3) -> None:
+        # generate and save initial game status
         self.board, self.board_filled = self.sudoku.generate_sudoku(difficulty)
         self.board_first = [i[:] for i in self.board]
         self.save_data()
@@ -285,14 +287,66 @@ class App:
             for j in range(9):
                 font_color = 7 if self.board_first[i][j] != 0 else 8
                 self.canvas.itemconfig(f"block{i}_{j}text", fill=self.themes_list[self.current_theme][font_color])
-
         self.update_board()
+        # make menu go up slowly
+        flags = [False, False]
+        if len(self.canvas.find_withtag("start_panel"))>0:
+            flags[0] = True
+        if len(self.canvas.find_withtag("diff_panel"))>0:
+            flags[1] = True
+        for i in range(self.height//20):
+            if flags[0]: self.canvas.move("start_panel", 0, -20)
+            if flags[1]: self.canvas.move("diff_panel", 0, -20)
+            self.canvas.update()
+            time.sleep(0.001)
         self.flag_menu = False
-        self.canvas.delete("start_panel")
+
+    def choose_difficulty(self) -> None:
+        # create the background
+        self.canvas.create_rectangle(0, 0, self.width, self.height, 
+                                     fill=self.themes_list[self.current_theme][0], 
+                                     outline="", tags=("diff_panel"))
+        # create the borders
+        self.canvas.create_rectangle(0, 0, self.border_width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("diff_panel"))
+        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("diff_panel"))
+        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("diff_panel"))
+        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, 
+                                     self.width-self.border_width, self.height, 
+                                     fill=self.themes_list[self.current_theme][1], 
+                                     outline="", tags=("diff_panel"))
+        # create difficulty buttons
+        link = lambda x: (lambda p: self.new_game(x))
+        buttons_texts = ["Easy", "Medium", "Hard", "Expert"]
+        for i in range(4):
+            self.canvas.create_rectangle(self.width//2-100, 200+i*120, self.width//2+100, 280+i*120,
+                                         fill=self.themes_list[self.current_theme][1], width=3, 
+                                         tags=("diff_panel", f"diff_btn_{i}"))
+            self.canvas.create_text(self.width//2, 240+i*120, anchor='center', justify='center', 
+                                    font=font.Font(family='Helvetica', size=36), state='disabled',
+                                    text=buttons_texts[i], tags=("diff_panel"))
+            self.canvas.tag_bind(f"diff_btn_{i}", "<Button-1>", link(i))
+        # create back button
+        def back_to_menu() -> None:
+            self.canvas.delete("diff_panel")
+        self.canvas.create_rectangle(20, self.height-60, 60, self.height-20,
+                                     fill=self.themes_list[self.current_theme][1], width=3,
+                                     tags=("diff_panel", "diff_btn_exit"))
+        self.canvas.create_text(40, self.height-40, anchor='center', justify='center', 
+                                font=font.Font(family='Helvetica', size=36), state='disabled',
+                                text="\u21E6", tags=("diff_panel"))
+        self.canvas.tag_bind("diff_btn_exit", "<Button-1>", lambda event: back_to_menu())
 
     def init_menu(self) -> None:
         # create the background
-        self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="", tags=("start_panel"))
+        self.canvas.create_rectangle(0, 0, self.width, self.height, 
+                                     fill=self.themes_list[self.current_theme][0], 
+                                     outline="", tags=("start_panel"))
         # create the borders
         self.canvas.create_rectangle(0, 0, self.border_width, self.height, 
                                      fill=self.themes_list[self.current_theme][1], 
@@ -326,7 +380,7 @@ class App:
                                 state='disabled', tags=("start_panel"))
         # bind buttons
         self.canvas.tag_bind("start_exit_btn", "<Button-1>", lambda event: self.app_close())
-        self.canvas.tag_bind("start_play_btn", "<Button-1>", lambda event: self.new_game())
+        self.canvas.tag_bind("start_play_btn", "<Button-1>", lambda event: self.choose_difficulty())
 
 
     def save_data(self) -> None:
@@ -358,7 +412,7 @@ class App:
     def app_close(self) -> None:
         if not self.flag_menu:
             self.save_data()
-        self.master.destroy()
+        self.master.quit()
 
         
 
