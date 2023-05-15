@@ -192,6 +192,7 @@ class App:
         # init menu if save.txt doesn't contain game save
         if self.flag_menu:
             self.init_menu()
+        
         self.master.mainloop()
 
     def notes(self) -> None:
