@@ -72,6 +72,7 @@ class App:
         self.sudoku = Sudoku()
         # main variables (dimensions etc.)
         self.flag_notes = False
+        self.flag_pause = False
         self.flag_menu = False
         self.current_theme = 0
         self.width, self.height = 600, 800
@@ -152,7 +153,7 @@ class App:
                                         state='disabled', fill=self.themes_list[self.current_theme][font_color], tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
         button_positions = [120, 240, 360, 480]
-        button_pos_y = 670
+        button_pos_y = 660
         button_size = [80, 60]
         button_tags = ["notes_btn", "erase_btn", "hint_btn", "restart_btn"]
         buttons_unicodes = ["\u270E", "\u2716", "\U0001F4A1", "\u2B6F"]
@@ -171,6 +172,17 @@ class App:
         self.canvas.tag_bind("erase_btn", "<Button-1>", lambda event: self.erase())
         self.canvas.tag_bind("hint_btn", "<Button-1>", lambda event: self.hint_move())
         self.canvas.tag_bind("restart_btn", "<Button-1>", lambda event: self.restart())
+        # create number buttons
+        link = lambda n: (lambda p: self.number_pressed(n))
+        for i in range(9):
+            self.canvas.create_rectangle(self.width//10*(i+1)-20, 720, self.width//10*(i+1)+20, 760,
+                                         fill=self.themes_list[self.current_theme][0], outline="", 
+                                         tags=(f"btn_number_{i+1}"))
+            self.canvas.create_text(self.width//10*(i+1), 740,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text=str(i+1))
+            self.canvas.tag_bind(f"btn_number_{i+1}", "<Button-1>", link(i+1))
         # update cells with board numbers
         self.update_board()
         # bind keyboard numbers with method
@@ -182,59 +194,62 @@ class App:
             self.init_menu()
         self.master.mainloop()
 
-    
-
     def notes(self) -> None:
         """
         Switches the notes mode
         """
-        self.flag_notes = not self.flag_notes
+        if not self.flag_menu and not self.flag_pause:
+            self.flag_notes = not self.flag_notes
 
     def hint_move(self) -> None:
         """
         Fills random one cell in current board with valid number from initial one
         """
-        empty = [[i, j] for i in range(9) for j in range(9) if self.board[i][j] == 0]
-        if len(empty) > 0:
-            hinted_one = random.choice(empty)
-            self.board[hinted_one[0]][hinted_one[1]] = self.board_filled[hinted_one[0]][hinted_one[1]]
-            self.current_coords = hinted_one.copy()
-            self.find_all_same(self.current_coords[0], self.current_coords[1])
-            self.update_board()
-            self.save_data()
+        if not self.flag_menu and not self.flag_pause:
+            empty = [[i, j] for i in range(9) for j in range(9) if self.board[i][j] == 0]
+            if len(empty) > 0:
+                hinted_one = random.choice(empty)
+                self.board[hinted_one[0]][hinted_one[1]] = self.board_filled[hinted_one[0]][hinted_one[1]]
+                self.current_coords = hinted_one.copy()
+                self.find_all_same(self.current_coords[0], self.current_coords[1])
+                self.update_board()
+                self.save_data()
 
     def restart(self) -> None:
         """
         Copying cells from initial board to current one
         """
-        self.board = [i[:] for i in self.board_first]
-        self.clear_board()
-        self.current_coords = [-1, -1]
-        self.update_board()
-        self.save_data()
+        if not self.flag_menu and not self.flag_pause:
+            self.board = [i[:] for i in self.board_first]
+            self.clear_board()
+            self.current_coords = [-1, -1]
+            self.update_board()
+            self.save_data()
     
     def erase(self) -> None:
         """
         Erases given cell if it isn't filled in initial board
         """
-        if self.board_first[self.current_coords[0]][self.current_coords[1]] == 0:
+        if not self.flag_menu and not self.flag_pause and self.board_first[self.current_coords[0]][self.current_coords[1]] == 0:
             self.board[self.current_coords[0]][self.current_coords[1]] = 0
             self.clear_board()
             self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 4
             self.update_board()
             self.save_data()
 
-
-
     def block_clicked(self, x: int, y: int) -> None:
         """
-        Command connected with all cells
+        Method connected with all cells
         """
-        self.current_coords[0], self.current_coords[1] = x, y
-        self.find_all_same(x, y)
+        if not self.flag_menu and not self.flag_pause:
+            self.current_coords[0], self.current_coords[1] = x, y
+            self.find_all_same(x, y)
 
     def number_pressed(self, number: int) -> None:
-        if self.current_coords!=[-1, -1] and self.board[self.current_coords[0]][self.current_coords[1]]==0:
+        """
+        Method connected with number keys and number buttons
+        """
+        if not self.flag_menu and not self.flag_pause and self.current_coords!=[-1, -1] and self.board[self.current_coords[0]][self.current_coords[1]]==0:
             self.board[self.current_coords[0]][self.current_coords[1]] = number
             if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
                 self.find_all_same(self.current_coords[0], self.current_coords[1])
@@ -279,6 +294,9 @@ class App:
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
     def new_game(self, difficulty: int = 3) -> None:
+        """
+        Starts new game with given difficulty
+        """
         # generate and save initial game status
         self.board, self.board_filled = self.sudoku.generate_sudoku(difficulty)
         self.board_first = [i[:] for i in self.board]
@@ -303,6 +321,9 @@ class App:
         self.flag_menu = False
 
     def choose_difficulty(self) -> None:
+        """
+        Method to create difficulty choose screen
+        """
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, 
                                      fill=self.themes_list[self.current_theme][0], 
@@ -344,6 +365,9 @@ class App:
         self.canvas.tag_bind("diff_btn_exit", "<Button-1>", lambda event: back_to_menu())
 
     def init_menu(self) -> None:
+        """
+        Method to create main menu
+        """
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, 
                                      fill=self.themes_list[self.current_theme][0], 
@@ -411,6 +435,9 @@ class App:
         
 
     def app_close(self) -> None:
+        """
+        Method to close the app
+        """
         if not self.flag_menu:
             self.save_data()
         self.master.quit()
