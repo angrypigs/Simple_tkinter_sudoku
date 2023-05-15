@@ -73,7 +73,7 @@ class App:
         # main variables (dimensions etc.)
         self.flag_notes = False
         self.flag_pause = False
-        self.flag_menu = False
+        self.flag_menu = True
         self.current_theme = 0
         self.width, self.height = 600, 800
         self.grid_size = 400
@@ -115,9 +115,6 @@ class App:
                 self.board[i//9][i%9] = int(save_current[i])
                 self.board_first[i//9][i%9] = int(save_first[i])
                 self.board_filled[i//9][i%9] = int(save_filled[i])
-        else:
-            self.flag_menu = True
-        
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
         # create the borders
@@ -152,17 +149,16 @@ class App:
                                         anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
                                         state='disabled', fill=self.themes_list[self.current_theme][font_color], tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
-        button_positions = [120, 240, 360, 480]
         button_pos_y = 660
         button_size = [80, 60]
         button_tags = ["notes_btn", "erase_btn", "hint_btn", "restart_btn"]
         buttons_unicodes = ["\u270E", "\u2716", "\U0001F4A1", "\u2B6F"]
         # create buttons
-        for i in range(4):
-            self.canvas.create_rectangle(button_positions[i]-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     button_positions[i]+button_size[0]//2, button_pos_y+button_size[1]//2, 
+        for i in range(len(button_tags)):
+            self.canvas.create_rectangle(self.width//(len(button_tags)+1)*(i+1)-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     self.width//(len(button_tags)+1)*(i+1)+button_size[0]//2, button_pos_y+button_size[1]//2, 
                                      fill=self.themes_list[self.current_theme][1], width=3, tags=(button_tags[i]))
-            self.canvas.create_text(button_positions[i], button_pos_y, 
+            self.canvas.create_text(self.width//(len(button_tags)+1)*(i+1), button_pos_y, 
                                     anchor='center', justify='center', state='disabled',
                                     font=font.Font(family='Helvetica', size=24),
                                     text=buttons_unicodes[i])
@@ -189,10 +185,7 @@ class App:
         link2 = lambda xp: (lambda p: self.number_pressed(xp))
         for i in range(1, 10):
             self.master.bind(str(i), link2(i))
-        # init menu if save.txt doesn't contain game save
-        if self.flag_menu:
-            self.init_menu()
-        
+        self.init_menu()
         self.master.mainloop()
 
     def notes(self) -> None:
@@ -308,17 +301,11 @@ class App:
                 self.canvas.itemconfig(f"block{i}_{j}text", fill=self.themes_list[self.current_theme][font_color])
         self.update_board()
         # make menu go up slowly
-        flags = [False, False]
-        if len(self.canvas.find_withtag("start_panel"))>0:
-            flags[0] = True
-        if len(self.canvas.find_withtag("diff_panel"))>0:
-            flags[1] = True
-        for i in range(self.height//20):
-            if flags[0]: self.canvas.move("start_panel", 0, -20)
-            if flags[1]: self.canvas.move("diff_panel", 0, -20)
-            self.canvas.update()
-            time.sleep(0.001)
-        self.canvas.delete("diff_panel")
+        self.move_menu(-20)
+        self.flag_menu = False
+
+    def resume_game(self) -> None:
+        self.move_menu(-20)
         self.flag_menu = False
 
     def choose_difficulty(self) -> None:
@@ -343,15 +330,30 @@ class App:
                                      self.width-self.border_width, self.height, 
                                      fill=self.themes_list[self.current_theme][1], 
                                      outline="", tags=("diff_panel"))
+        # create resume game button if game save is in save.txt
+        file = open(os.path.join(sys.path[0], "save.txt"), "r")
+        L = [line.strip() for line in file.readlines()]
+        file.close()
+        if len(L) > 0:
+            self.canvas.create_rectangle(self.width//2-150, 80, self.width//2+150, 160,
+                                         fill=self.themes_list[self.current_theme][1], width=3,
+                                         tags=("resume_game_btn", "diff_panel"))
+            self.canvas.create_text(self.width//2, 120, anchor='center', justify='center', 
+                                    font=font.Font(family='Helvetica', size=32), state='disabled',
+                                    text="Resume game", tags=("diff_panel"))
+            self.canvas.tag_bind("resume_game_btn", "<Button-1>", lambda event: self.resume_game())
         # create difficulty buttons
+        self.canvas.create_text(self.width//2, 260, anchor='center', justify='center', 
+                                font=font.Font(family='Helvetica', size=40),
+                                text="Start new game", tags=("diff_panel"))
         link = lambda x: (lambda p: self.new_game(x))
         buttons_texts = ["Easy", "Medium", "Hard", "Expert"]
         for i in range(4):
-            self.canvas.create_rectangle(self.width//2-100, 200+i*120, self.width//2+100, 280+i*120,
+            self.canvas.create_rectangle(self.width//2-100, 320+i*100, self.width//2+100, 400+i*100,
                                          fill=self.themes_list[self.current_theme][1], width=3, 
                                          tags=("diff_panel", f"diff_btn_{i}"))
-            self.canvas.create_text(self.width//2, 240+i*120, anchor='center', justify='center', 
-                                    font=font.Font(family='Helvetica', size=36), state='disabled',
+            self.canvas.create_text(self.width//2, 360+i*100, anchor='center', justify='center', 
+                                    font=font.Font(family='Helvetica', size=32), state='disabled',
                                     text=buttons_texts[i], tags=("diff_panel"))
             self.canvas.tag_bind(f"diff_btn_{i}", "<Button-1>", link(i))
         # create back button
@@ -408,6 +410,18 @@ class App:
         self.canvas.tag_bind("start_exit_btn", "<Button-1>", lambda event: self.app_close())
         self.canvas.tag_bind("start_play_btn", "<Button-1>", lambda event: self.choose_difficulty())
 
+    def move_menu(self, dir: int) -> None:
+        flags = [False, False]
+        if len(self.canvas.find_withtag("start_panel"))>0:
+            flags[0] = True
+        if len(self.canvas.find_withtag("diff_panel"))>0:
+            flags[1] = True
+        for i in range(self.height//20):
+            if flags[0]: self.canvas.move("start_panel", 0, dir)
+            if flags[1]: self.canvas.move("diff_panel", 0, dir)
+            self.canvas.update()
+            time.sleep(0.001)
+        self.canvas.delete("diff_panel")
 
     def save_data(self) -> None:
         """
