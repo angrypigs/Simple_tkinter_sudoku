@@ -164,10 +164,88 @@ class App:
                                     text=buttons_unicodes[i])
         
         # bind button rectangles to methods
+        def denied() -> None:
+            self.canvas.delete("accept")
+            self.flag_pause = False
+        def accept(f: callable) -> None:
+            denied()
+            f()
+        def restart_accept() -> None:
+            self.flag_pause = True
+            self.canvas.create_rectangle(self.width//2-200, self.height//2-100,
+                                         self.width//2+200, self.height//2+100,
+                                         fill=self.themes_list[self.current_theme][0], width=3, 
+                                         tags=("accept"))
+            self.canvas.create_text(self.width//2, self.height//2-60,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=32),
+                                    text="Restart game?", tags=("accept"))
+            self.canvas.create_rectangle(self.width//2-100, self.height//2,
+                                         self.width//2-20, self.height//2+60,
+                                         fill=self.themes_list[self.current_theme][1], width=3, 
+                                         tags=("accept", "accept_yes_restart"))
+            self.canvas.create_rectangle(self.width//2+20, self.height//2,
+                                         self.width//2+100, self.height//2+60,
+                                         fill=self.themes_list[self.current_theme][1], width=3, 
+                                         tags=("accept", "accept_no_restart"))
+            self.canvas.create_text(self.width//2-60, self.height//2+30,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text="Yes", tags=("accept"))
+            self.canvas.create_text(self.width//2+60, self.height//2+30,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text="No", tags=("accept"))
+            self.canvas.tag_bind("accept_yes_restart", "<Button-1>", lambda event: accept(self.restart))
+            self.canvas.tag_bind("accept_no_restart", "<Button-1>", lambda event: denied())
+            
         self.canvas.tag_bind("notes_btn", "<Button-1>", lambda event: self.notes())
         self.canvas.tag_bind("erase_btn", "<Button-1>", lambda event: self.erase())
         self.canvas.tag_bind("hint_btn", "<Button-1>", lambda event: self.hint_move())
-        self.canvas.tag_bind("restart_btn", "<Button-1>", lambda event: self.restart())
+        self.canvas.tag_bind("restart_btn", "<Button-1>", lambda event: restart_accept())
+        # create exit button
+        def back_to_menu() -> None:
+            self.canvas.delete("accept")
+            self.flag_menu = True
+            self.flag_pause = False
+            self.save_data()
+            self.move_menu(20)
+        def exit_accept() -> None:
+            self.flag_pause = True
+            self.canvas.create_rectangle(self.width//2-200, self.height//2-100,
+                                         self.width//2+200, self.height//2+100,
+                                         fill=self.themes_list[self.current_theme][0], width=3, 
+                                         tags=("accept"))
+            self.canvas.create_text(self.width//2, self.height//2-60,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=32),
+                                    text="Go to menu?", tags=("accept"))
+            self.canvas.create_rectangle(self.width//2-100, self.height//2,
+                                         self.width//2-20, self.height//2+60,
+                                         fill=self.themes_list[self.current_theme][1], width=3, 
+                                         tags=("accept", "accept_yes_exit"))
+            self.canvas.create_rectangle(self.width//2+20, self.height//2,
+                                         self.width//2+100, self.height//2+60,
+                                         fill=self.themes_list[self.current_theme][1], width=3, 
+                                         tags=("accept", "accept_no_exit"))
+            self.canvas.create_text(self.width//2-60, self.height//2+30,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text="Yes", tags=("accept"))
+            self.canvas.create_text(self.width//2+60, self.height//2+30,
+                                    anchor='center', justify='center', state='disabled',
+                                    font=font.Font(family='Helvetica', size=24),
+                                    text="No", tags=("accept"))
+            self.canvas.tag_bind("accept_yes_exit", "<Button-1>", lambda event: back_to_menu())
+            self.canvas.tag_bind("accept_no_exit", "<Button-1>", lambda event: denied())
+        
+        self.canvas.create_rectangle(20, 20, 60, 60,
+                                     fill=self.themes_list[self.current_theme][1], width=3,
+                                     tags=("exit"))
+        self.canvas.create_text(40, 40, anchor='center', justify='center', 
+                                font=font.Font(family='Helvetica', size=36), state='disabled',
+                                text="\u21E6")
+        self.canvas.tag_bind("exit", "<Button-1>", lambda event: exit_accept())
         # create number buttons
         link = lambda n: (lambda p: self.number_pressed(n))
         for i in range(9):
@@ -187,7 +265,7 @@ class App:
             self.master.bind(str(i), link2(i))
         self.init_menu()
         self.master.mainloop()
-
+    
     def notes(self) -> None:
         """
         Switches the notes mode
