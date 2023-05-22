@@ -71,7 +71,7 @@ class App:
         self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
         self.sudoku = Sudoku()
         # main variables (dimensions etc.)
-        self.flag_notes = False
+        self.flag_notes = True
         self.flag_pause = False
         self.flag_menu = True
         self.current_theme = 0
@@ -79,9 +79,11 @@ class App:
         self.grid_size = 400
         self.border_width = 10
         # list for current block
-        self.current_coords = [-1, -1]
+        self.coords = [-1, -1]
         # matrix for current cell colors
         self.cells_colors = [[3 for i in range(9)] for j in range(9)]
+        # matrix for notes
+        self.notes_board = [[[] for i in range(9)] for j in range(9)]
         # initializing the app
         self.master = tk.Tk()
         self.master.title("Sudoku")
@@ -125,7 +127,7 @@ class App:
         # create the grid background and cells and binding them to function
         self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[self.current_theme][2], width=3)
         link = lambda x, y: (lambda p: self.block_clicked(x, y))
-        block_size = 44
+        self.block_size = 44
         x_delay, y_delay = 0, 0
         for i in range(9):
             for j in range(9):
@@ -142,10 +144,10 @@ class App:
                 else:
                     x_delay = 0
                 font_color = 7 if self.board_first[i][j] != 0 else 8
-                self.canvas.create_rectangle(100+j*block_size+x_delay, 200+i*block_size+y_delay, 
-                                             100+j*block_size+block_size+x_delay, 200+i*block_size+block_size+y_delay, 
+                self.canvas.create_rectangle(100+j*self.block_size+x_delay, 200+i*self.block_size+y_delay, 
+                                             100+j*self.block_size+self.block_size+x_delay, 200+i*self.block_size+self.block_size+y_delay, 
                                              fill=self.themes_list[self.current_theme][3], tags=(f"block{i}_{j}"))
-                self.canvas.create_text(100+j*block_size+block_size//2+x_delay, 200+i*block_size+block_size//2+y_delay,
+                self.canvas.create_text(100+j*self.block_size+self.block_size//2+x_delay, 200+i*self.block_size+self.block_size//2+y_delay,
                                         anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
                                         state='disabled', fill=self.themes_list[self.current_theme][font_color], tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
@@ -271,7 +273,9 @@ class App:
         Switches the notes mode
         """
         if not self.flag_menu and not self.flag_pause:
+            n = 8 if self.flag_notes else 1
             self.flag_notes = not self.flag_notes
+            self.canvas.itemconfig("notes_btn", fill=self.themes_list[self.current_theme][n])
 
     def hint_move(self) -> None:
         """
@@ -282,8 +286,8 @@ class App:
             if len(empty) > 0:
                 hinted_one = random.choice(empty)
                 self.board[hinted_one[0]][hinted_one[1]] = self.board_filled[hinted_one[0]][hinted_one[1]]
-                self.current_coords = hinted_one.copy()
-                self.find_all_same(self.current_coords[0], self.current_coords[1])
+                self.coords = hinted_one.copy()
+                self.find_all_same(self.coords[0], self.coords[1])
                 self.update_board()
                 self.save_data()
 
@@ -294,7 +298,7 @@ class App:
         if not self.flag_menu and not self.flag_pause:
             self.board = [i[:] for i in self.board_first]
             self.clear_board()
-            self.current_coords = [-1, -1]
+            self.coords = [-1, -1]
             self.update_board()
             self.save_data()
     
@@ -302,34 +306,60 @@ class App:
         """
         Erases given cell if it isn't filled in initial board
         """
-        if not self.flag_menu and not self.flag_pause and self.board_first[self.current_coords[0]][self.current_coords[1]] == 0:
-            self.board[self.current_coords[0]][self.current_coords[1]] = 0
-            self.clear_board()
-            self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 4
-            self.update_board()
-            self.save_data()
+        if not self.flag_menu and not self.flag_pause:
+            self.notes_board[self.coords[0]][self.coords[1]].clear()
+            for i in range(1, 10):
+                self.canvas.delete(f"block{self.coords[0]}_{self.coords[1]}notes{i}")
+            if self.board_first[self.coords[0]][self.coords[1]] == 0:
+                self.board[self.coords[0]][self.coords[1]] = 0
+                self.clear_board()
+                self.cells_colors[self.coords[0]][self.coords[1]] = 4
+                self.update_board()
+                self.save_data()
 
     def block_clicked(self, x: int, y: int) -> None:
         """
         Method connected with all cells
         """
         if not self.flag_menu and not self.flag_pause:
-            self.current_coords[0], self.current_coords[1] = x, y
+            self.coords[0], self.coords[1] = x, y
             self.find_all_same(x, y)
 
     def number_pressed(self, number: int) -> None:
         """
         Method connected with number keys and number buttons
         """
-        if not self.flag_menu and not self.flag_pause and self.current_coords!=[-1, -1] and self.board[self.current_coords[0]][self.current_coords[1]]==0:
-            self.board[self.current_coords[0]][self.current_coords[1]] = number
-            if self.sudoku.is_valid(self.board, number, self.current_coords[0], self.current_coords[1]):
-                self.find_all_same(self.current_coords[0], self.current_coords[1])
+        if not self.flag_menu and not self.flag_pause and self.coords!=[-1, -1] and self.board[self.coords[0]][self.coords[1]]==0:
+            if self.flag_notes:
+                if number in self.notes_board[self.coords[0]][self.coords[1]]:
+                    self.notes_board[self.coords[0]][self.coords[1]].remove(number)
+                    for i in range(1, 10):
+                        self.canvas.delete(f"block{self.coords[0]}_{self.coords[1]}notes{i}")
+                    for i in range(len(self.notes_board[self.coords[0]][self.coords[1]])):
+                        self.canvas.create_text(
+                        self.canvas.coords(f"block{self.coords[0]}_{self.coords[1]}")[0]+i%3*self.block_size//3,
+                        self.canvas.coords(f"block{self.coords[0]}_{self.coords[1]}")[1]+i//3*self.block_size//3,
+                        text=str(self.notes_board[self.coords[0]][self.coords[1]][i]), 
+                        font=font.Font(family='Helvetica', size=10), state='disabled', anchor='nw', justify='left', 
+                        tags=(f"block{self.coords[0]}_{self.coords[1]}notes{self.notes_board[self.coords[0]][self.coords[1]][i]}"))
+                else:
+                    self.notes_board[self.coords[0]][self.coords[1]].append(number)
+                    self.canvas.create_text(
+                    self.canvas.coords(f"block{self.coords[0]}_{self.coords[1]}")[0]+(
+                    len(self.notes_board[self.coords[0]][self.coords[1]])-1)%3*self.block_size//3,
+                    self.canvas.coords(f"block{self.coords[0]}_{self.coords[1]}")[1]+(
+                    len(self.notes_board[self.coords[0]][self.coords[1]])-1)//3*self.block_size//3,
+                    text=str(number), font=font.Font(family='Helvetica', size=10), state='disabled',
+                    anchor='nw', justify='left', tags=(f"block{self.coords[0]}_{self.coords[1]}notes{number}"))
             else:
-                self.cells_colors[self.current_coords[0]][self.current_coords[1]] = 5
-            self.canvas.itemconfig(f"block{self.current_coords[0]}_{self.current_coords[1]}text", fill=self.themes_list[self.current_theme][8])
-            self.update_board()
-            self.save_data()
+                self.board[self.coords[0]][self.coords[1]] = number
+                if self.sudoku.is_valid(self.board, number, self.coords[0], self.coords[1]):
+                    self.find_all_same(self.coords[0], self.coords[1])
+                else:
+                    self.cells_colors[self.coords[0]][self.coords[1]] = 5
+                self.canvas.itemconfig(f"block{self.coords[0]}_{self.coords[1]}text", fill=self.themes_list[self.current_theme][8])
+                self.update_board()
+                self.save_data()
     
     def find_all_same(self, x: int, y: int) -> None:
         """
@@ -381,10 +411,14 @@ class App:
         # make menu go up slowly
         self.move_menu(-20)
         self.flag_menu = False
+        self.flag_notes = True
+        self.notes()
 
     def resume_game(self) -> None:
         self.move_menu(-20)
         self.flag_menu = False
+        self.flag_notes = True
+        self.notes()
 
     def choose_difficulty(self) -> None:
         """
