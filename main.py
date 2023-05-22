@@ -113,10 +113,14 @@ class App:
             save_current = fernet2.decrypt(bytes(L[1], "UTF-8")).decode()
             save_first = fernet2.decrypt(bytes(L[2], "UTF-8")).decode()
             save_filled = fernet2.decrypt(bytes(L[3], "UTF-8")).decode()
+            save_notes = fernet2.decrypt(bytes(L[4], "UTF-8")).decode()
             for i in range(len(save_current)):
                 self.board[i//9][i%9] = int(save_current[i])
                 self.board_first[i//9][i%9] = int(save_first[i])
                 self.board_filled[i//9][i%9] = int(save_filled[i])
+            self.notes_board = [[[[int(j) for j in i] for i in save_notes.split("-")][k*9+m] for m in range(9)] for k in range(9)]
+            for i in self.notes_board:
+                print(i)
         # create the background
         self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
         # create the borders
@@ -352,6 +356,9 @@ class App:
                     text=str(number), font=font.Font(family='Helvetica', size=10), state='disabled',
                     anchor='nw', justify='left', tags=(f"block{self.coords[0]}_{self.coords[1]}notes{number}"))
             else:
+                self.notes_board[self.coords[0]][self.coords[1]].clear()
+                for i in range(1, 10):
+                    self.canvas.delete(f"block{self.coords[0]}_{self.coords[1]}notes{i}")
                 self.board[self.coords[0]][self.coords[1]] = number
                 if self.sudoku.is_valid(self.board, number, self.coords[0], self.coords[1]):
                     self.find_all_same(self.coords[0], self.coords[1])
@@ -416,6 +423,15 @@ class App:
 
     def resume_game(self) -> None:
         self.move_menu(-20)
+        for i in range(9):
+            for j in range(9):
+                for k in range(len(self.notes_board[i][j])):
+                    self.canvas.create_text(
+                    self.canvas.coords(f"block{i}_{j}")[0]+k%3*self.block_size//3,
+                    self.canvas.coords(f"block{i}_{j}")[1]+k//3*self.block_size//3,
+                    text=str(self.notes_board[i][j][k]), font=font.Font(family='Helvetica', size=10), 
+                    state='disabled', anchor='nw', justify='left', 
+                    tags=(f"block{i}_{j}notes{self.notes_board[i][j][k]}"))
         self.flag_menu = False
         self.flag_notes = True
         self.notes()
@@ -555,9 +571,11 @@ class App:
         for i in range(9):
             for j in range(9):
                 save_filled+=str(self.board_filled[i][j])
+        save_notes = "-".join(["".join([str(j) for j in i]) for i in [self.notes_board[k][m] for k in range(len(self.notes_board)) for m in range(len(self.notes_board[k]))]])
         file.write(str(fernet.encrypt(save_current.encode()), "UTF-8")+"\n")
         file.write(str(fernet.encrypt(save_first.encode()), "UTF-8")+"\n")
         file.write(str(fernet.encrypt(save_filled.encode()), "UTF-8")+"\n")
+        file.write(str(fernet.encrypt(save_notes.encode()), "UTF-8")+"\n")
         file.close()
         
 
@@ -570,10 +588,6 @@ class App:
         self.master.quit()
 
         
-
 if __name__ == "__main__":
     app = App()
-
-
-
 
