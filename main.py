@@ -68,16 +68,17 @@ class App:
         # themes list (0 - bg, 1 - borders, 2 - grid bg, 3 - cells bg, 
         # 4 - active cells bg, 5 - invalid cells bg, 6 - similar cells bg,
         # 7 - font color, 8 - edited cells font color)
-        self.themes_list = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
+        self.THEMES_LIST = [["#363636", "#15C1B0", "#181B1B", "#555555", "#0BFFE8", "#D14513", "#10BAAA", "#000000", "#043732"]]
         self.sudoku = Sudoku()
-        # main variables (dimensions etc.)
+        # define constants
+        self.WIDTH, self.HEIGHT = 600, 800
+        self.GRID_SIZE = 400
+        self.BORDER_WIDTH = 10
+        # define variables (dimensions etc.)
         self.flag_notes = True
         self.flag_pause = False
         self.flag_menu = True
         self.current_theme = 0
-        self.width, self.height = 600, 800
-        self.grid_size = 400
-        self.border_width = 10
         # list for current block
         self.coords = [-1, -1]
         # matrix for current cell colors
@@ -87,10 +88,10 @@ class App:
         # initializing the app
         self.master = tk.Tk()
         self.master.title("Sudoku")
-        self.master.geometry(f"{self.width}x{self.height}")
+        self.master.geometry(f"{self.WIDTH}x{self.HEIGHT}")
         self.master.resizable(False, False)
         self.master.protocol("WM_DELETE_WINDOW", self.app_close)
-        self.canvas = tk.Canvas(self.master, height=self.height, width=self.width, bd=0, highlightthickness=0, bg="#0F2435")
+        self.canvas = tk.Canvas(self.master, height=self.HEIGHT, width=self.WIDTH, bd=0, highlightthickness=0, bg="#0F2435")
         self.canvas.place(x=0, y=0)
         # define three boards (current, initial one and correctly filled one)
         self.board = [[0 for i in range(9)] for j in range(9)]
@@ -119,17 +120,15 @@ class App:
                 self.board_first[i//9][i%9] = int(save_first[i])
                 self.board_filled[i//9][i%9] = int(save_filled[i])
             self.notes_board = [[[[int(j) for j in i] for i in save_notes.split("-")][k*9+m] for m in range(9)] for k in range(9)]
-            for i in self.notes_board:
-                print(i)
         # create the background
-        self.canvas.create_rectangle(0, 0, self.width, self.height, fill=self.themes_list[self.current_theme][0], outline="")
+        self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, fill=self.THEMES_LIST[self.current_theme][0], outline="")
         # create the borders
-        self.canvas.create_rectangle(0, 0, self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, fill=self.themes_list[self.current_theme][1], outline="")
-        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, self.width-self.border_width, self.height, fill=self.themes_list[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(0, 0, self.BORDER_WIDTH, self.HEIGHT, fill=self.THEMES_LIST[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.WIDTH-self.BORDER_WIDTH, 0, self.WIDTH, self.HEIGHT, fill=self.THEMES_LIST[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.BORDER_WIDTH, 0, self.WIDTH-self.BORDER_WIDTH, self.BORDER_WIDTH, fill=self.THEMES_LIST[self.current_theme][1], outline="")
+        self.canvas.create_rectangle(self.BORDER_WIDTH, self.HEIGHT-self.BORDER_WIDTH, self.WIDTH-self.BORDER_WIDTH, self.HEIGHT, fill=self.THEMES_LIST[self.current_theme][1], outline="")
         # create the grid background and cells and binding them to function
-        self.canvas.create_rectangle(100, 200, 100+self.grid_size, 200+self.grid_size, fill=self.themes_list[self.current_theme][2], width=3)
+        self.canvas.create_rectangle(100, 200, 100+self.GRID_SIZE, 200+self.GRID_SIZE, fill=self.THEMES_LIST[self.current_theme][2], width=3)
         link = lambda x, y: (lambda p: self.block_clicked(x, y))
         self.block_size = 44
         x_delay, y_delay = 0, 0
@@ -150,10 +149,10 @@ class App:
                 font_color = 7 if self.board_first[i][j] != 0 else 8
                 self.canvas.create_rectangle(100+j*self.block_size+x_delay, 200+i*self.block_size+y_delay, 
                                              100+j*self.block_size+self.block_size+x_delay, 200+i*self.block_size+self.block_size+y_delay, 
-                                             fill=self.themes_list[self.current_theme][3], tags=(f"block{i}_{j}"))
+                                             fill=self.THEMES_LIST[self.current_theme][3], tags=(f"block{i}_{j}"))
                 self.canvas.create_text(100+j*self.block_size+self.block_size//2+x_delay, 200+i*self.block_size+self.block_size//2+y_delay,
                                         anchor='center', justify='center', font=font.Font(family='Helvetica', size=24),
-                                        state='disabled', fill=self.themes_list[self.current_theme][font_color], tags=f"block{i}_{j}text")
+                                        state='disabled', fill=self.THEMES_LIST[self.current_theme][font_color], tags=f"block{i}_{j}text")
                 self.canvas.tag_bind(f"block{i}_{j}", "<Button-1>", link(i, j))
         button_pos_y = 660
         button_size = [80, 60]
@@ -161,10 +160,10 @@ class App:
         buttons_unicodes = ["\u270E", "\u2716", "\U0001F4A1", "\u2B6F"]
         # create buttons
         for i in range(len(button_tags)):
-            self.canvas.create_rectangle(self.width//(len(button_tags)+1)*(i+1)-button_size[0]//2, button_pos_y-button_size[1]//2, 
-                                     self.width//(len(button_tags)+1)*(i+1)+button_size[0]//2, button_pos_y+button_size[1]//2, 
-                                     fill=self.themes_list[self.current_theme][1], width=3, tags=(button_tags[i]))
-            self.canvas.create_text(self.width//(len(button_tags)+1)*(i+1), button_pos_y, 
+            self.canvas.create_rectangle(self.WIDTH//(len(button_tags)+1)*(i+1)-button_size[0]//2, button_pos_y-button_size[1]//2, 
+                                     self.WIDTH//(len(button_tags)+1)*(i+1)+button_size[0]//2, button_pos_y+button_size[1]//2, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], width=3, tags=(button_tags[i]))
+            self.canvas.create_text(self.WIDTH//(len(button_tags)+1)*(i+1), button_pos_y, 
                                     anchor='center', justify='center', state='disabled',
                                     font=font.Font(family='Helvetica', size=24),
                                     text=buttons_unicodes[i])
@@ -177,33 +176,34 @@ class App:
             denied()
             f()
         def restart_accept() -> None:
-            self.flag_pause = True
-            self.canvas.create_rectangle(self.width//2-200, self.height//2-100,
-                                         self.width//2+200, self.height//2+100,
-                                         fill=self.themes_list[self.current_theme][0], width=3, 
-                                         tags=("accept"))
-            self.canvas.create_text(self.width//2, self.height//2-60,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=32),
-                                    text="Restart game?", tags=("accept"))
-            self.canvas.create_rectangle(self.width//2-100, self.height//2,
-                                         self.width//2-20, self.height//2+60,
-                                         fill=self.themes_list[self.current_theme][1], width=3, 
-                                         tags=("accept", "accept_yes_restart"))
-            self.canvas.create_rectangle(self.width//2+20, self.height//2,
-                                         self.width//2+100, self.height//2+60,
-                                         fill=self.themes_list[self.current_theme][1], width=3, 
-                                         tags=("accept", "accept_no_restart"))
-            self.canvas.create_text(self.width//2-60, self.height//2+30,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=24),
-                                    text="Yes", tags=("accept"))
-            self.canvas.create_text(self.width//2+60, self.height//2+30,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=24),
-                                    text="No", tags=("accept"))
-            self.canvas.tag_bind("accept_yes_restart", "<Button-1>", lambda event: accept(self.restart))
-            self.canvas.tag_bind("accept_no_restart", "<Button-1>", lambda event: denied())
+            if not self.flag_pause:
+                self.flag_pause = True
+                self.canvas.create_rectangle(self.WIDTH//2-200, self.HEIGHT//2-100,
+                                            self.WIDTH//2+200, self.HEIGHT//2+100,
+                                            fill=self.THEMES_LIST[self.current_theme][0], width=3, 
+                                            tags=("accept"))
+                self.canvas.create_text(self.WIDTH//2, self.HEIGHT//2-60,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=32),
+                                        text="Restart game?", tags=("accept"))
+                self.canvas.create_rectangle(self.WIDTH//2-100, self.HEIGHT//2,
+                                            self.WIDTH//2-20, self.HEIGHT//2+60,
+                                            fill=self.THEMES_LIST[self.current_theme][1], width=3, 
+                                            tags=("accept", "accept_yes_restart"))
+                self.canvas.create_rectangle(self.WIDTH//2+20, self.HEIGHT//2,
+                                            self.WIDTH//2+100, self.HEIGHT//2+60,
+                                            fill=self.THEMES_LIST[self.current_theme][1], width=3, 
+                                            tags=("accept", "accept_no_restart"))
+                self.canvas.create_text(self.WIDTH//2-60, self.HEIGHT//2+30,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=24),
+                                        text="Yes", tags=("accept"))
+                self.canvas.create_text(self.WIDTH//2+60, self.HEIGHT//2+30,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=24),
+                                        text="No", tags=("accept"))
+                self.canvas.tag_bind("accept_yes_restart", "<Button-1>", lambda event: accept(self.restart))
+                self.canvas.tag_bind("accept_no_restart", "<Button-1>", lambda event: denied())
             
         self.canvas.tag_bind("notes_btn", "<Button-1>", lambda event: self.notes())
         self.canvas.tag_bind("erase_btn", "<Button-1>", lambda event: self.erase())
@@ -217,36 +217,37 @@ class App:
             self.save_data()
             self.move_menu(20)
         def exit_accept() -> None:
-            self.flag_pause = True
-            self.canvas.create_rectangle(self.width//2-200, self.height//2-100,
-                                         self.width//2+200, self.height//2+100,
-                                         fill=self.themes_list[self.current_theme][0], width=3, 
-                                         tags=("accept"))
-            self.canvas.create_text(self.width//2, self.height//2-60,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=32),
-                                    text="Go to menu?", tags=("accept"))
-            self.canvas.create_rectangle(self.width//2-100, self.height//2,
-                                         self.width//2-20, self.height//2+60,
-                                         fill=self.themes_list[self.current_theme][1], width=3, 
-                                         tags=("accept", "accept_yes_exit"))
-            self.canvas.create_rectangle(self.width//2+20, self.height//2,
-                                         self.width//2+100, self.height//2+60,
-                                         fill=self.themes_list[self.current_theme][1], width=3, 
-                                         tags=("accept", "accept_no_exit"))
-            self.canvas.create_text(self.width//2-60, self.height//2+30,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=24),
-                                    text="Yes", tags=("accept"))
-            self.canvas.create_text(self.width//2+60, self.height//2+30,
-                                    anchor='center', justify='center', state='disabled',
-                                    font=font.Font(family='Helvetica', size=24),
-                                    text="No", tags=("accept"))
-            self.canvas.tag_bind("accept_yes_exit", "<Button-1>", lambda event: back_to_menu())
-            self.canvas.tag_bind("accept_no_exit", "<Button-1>", lambda event: denied())
+            if not self.flag_pause:
+                self.flag_pause = True
+                self.canvas.create_rectangle(self.WIDTH//2-200, self.HEIGHT//2-100,
+                                            self.WIDTH//2+200, self.HEIGHT//2+100,
+                                            fill=self.THEMES_LIST[self.current_theme][0], width=3, 
+                                            tags=("accept"))
+                self.canvas.create_text(self.WIDTH//2, self.HEIGHT//2-60,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=32),
+                                        text="Go to menu?", tags=("accept"))
+                self.canvas.create_rectangle(self.WIDTH//2-100, self.HEIGHT//2,
+                                            self.WIDTH//2-20, self.HEIGHT//2+60,
+                                            fill=self.THEMES_LIST[self.current_theme][1], width=3, 
+                                            tags=("accept", "accept_yes_exit"))
+                self.canvas.create_rectangle(self.WIDTH//2+20, self.HEIGHT//2,
+                                            self.WIDTH//2+100, self.HEIGHT//2+60,
+                                            fill=self.THEMES_LIST[self.current_theme][1], width=3, 
+                                            tags=("accept", "accept_no_exit"))
+                self.canvas.create_text(self.WIDTH//2-60, self.HEIGHT//2+30,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=24),
+                                        text="Yes", tags=("accept"))
+                self.canvas.create_text(self.WIDTH//2+60, self.HEIGHT//2+30,
+                                        anchor='center', justify='center', state='disabled',
+                                        font=font.Font(family='Helvetica', size=24),
+                                        text="No", tags=("accept"))
+                self.canvas.tag_bind("accept_yes_exit", "<Button-1>", lambda event: back_to_menu())
+                self.canvas.tag_bind("accept_no_exit", "<Button-1>", lambda event: denied())
         
         self.canvas.create_rectangle(20, 20, 60, 60,
-                                     fill=self.themes_list[self.current_theme][1], width=3,
+                                     fill=self.THEMES_LIST[self.current_theme][1], width=3,
                                      tags=("exit"))
         self.canvas.create_text(40, 40, anchor='center', justify='center', 
                                 font=font.Font(family='Helvetica', size=36), state='disabled',
@@ -255,10 +256,10 @@ class App:
         # create number buttons
         link = lambda n: (lambda p: self.number_pressed(n))
         for i in range(9):
-            self.canvas.create_rectangle(self.width//10*(i+1)-20, 720, self.width//10*(i+1)+20, 760,
-                                         fill=self.themes_list[self.current_theme][0], outline="", 
+            self.canvas.create_rectangle(self.WIDTH//10*(i+1)-20, 720, self.WIDTH//10*(i+1)+20, 760,
+                                         fill=self.THEMES_LIST[self.current_theme][1], width=3, 
                                          tags=(f"btn_number_{i+1}"))
-            self.canvas.create_text(self.width//10*(i+1), 740,
+            self.canvas.create_text(self.WIDTH//10*(i+1), 740,
                                     anchor='center', justify='center', state='disabled',
                                     font=font.Font(family='Helvetica', size=24),
                                     text=str(i+1))
@@ -272,6 +273,8 @@ class App:
         self.init_menu()
         self.master.mainloop()
     
+
+
     def notes(self) -> None:
         """
         Switches the notes mode
@@ -279,7 +282,7 @@ class App:
         if not self.flag_menu and not self.flag_pause:
             n = 8 if self.flag_notes else 1
             self.flag_notes = not self.flag_notes
-            self.canvas.itemconfig("notes_btn", fill=self.themes_list[self.current_theme][n])
+            self.canvas.itemconfig("notes_btn", fill=self.THEMES_LIST[self.current_theme][n])
 
     def hint_move(self) -> None:
         """
@@ -364,9 +367,10 @@ class App:
                     self.find_all_same(self.coords[0], self.coords[1])
                 else:
                     self.cells_colors[self.coords[0]][self.coords[1]] = 5
-                self.canvas.itemconfig(f"block{self.coords[0]}_{self.coords[1]}text", fill=self.themes_list[self.current_theme][8])
+                self.canvas.itemconfig(f"block{self.coords[0]}_{self.coords[1]}text", fill=self.THEMES_LIST[self.current_theme][8])
                 self.update_board()
                 self.save_data()
+                self.win_check()
     
     def find_all_same(self, x: int, y: int) -> None:
         """
@@ -391,14 +395,54 @@ class App:
                 if self.cells_colors[i][j] != 5:
                     self.cells_colors[i][j] = 3
 
+    def win_check(self) -> None:
+        """
+        Check if game is won
+        """
+        l2, l3 = [[self.board[i][j] for i in range(9)]
+                  for j in range(9)], [[self.board[i+k*3][j+m*3] 
+                    for i in range(3) for j in range(3)] 
+                  for k in range(3) for m in range(3)]
+        for i in range(9):
+            for j in range(1, 10):
+                if self.board[i].count(j)!=1 or l2[i].count(j)!=1 or l3[i].count(j)!=1:
+                    return
+        self.flag_pause = True
+        self.flag_menu = True
+        file = open(os.path.join(sys.path[0], "save.txt"), "w")
+        file.close()
+        self.canvas.create_rectangle(self.WIDTH//2-200, self.HEIGHT//2-100,
+                                    self.WIDTH//2+200, self.HEIGHT//2+100,
+                                    fill=self.THEMES_LIST[self.current_theme][0], width=3, 
+                                    tags=("win_panel"))
+        self.canvas.create_text(self.WIDTH//2, self.HEIGHT//2-60,
+                                anchor='center', justify='center', state='disabled',
+                                font=font.Font(family='Helvetica', size=32),
+                                text="You won!", tags=("win_panel"))
+        self.canvas.create_rectangle(self.WIDTH//2-100, self.HEIGHT//2-10,
+                                     self.WIDTH//2+100, self.HEIGHT//2+50,
+                                     fill=self.THEMES_LIST[self.current_theme][1], width=3, 
+                                     tags=("win_panel", "win_menu_btn"))
+        self.canvas.create_text(self.WIDTH//2, self.HEIGHT//2+20,
+                                anchor='center', justify='center', state='disabled',
+                                font=font.Font(family='Helvetica', size=24),
+                                text="Go to menu", tags=("win_panel"))
+        def back_to_menu() -> None:
+            self.canvas.delete("win_panel")
+            self.flag_menu = True
+            self.flag_pause = False
+            self.move_menu(20)
+        self.canvas.tag_bind("win_menu_btn", "<Button-1>", lambda event: back_to_menu())
+        
+
     def update_board(self) -> None:
         """
         Updates numbers and colors of all cells if they are different
         """
         for i in range(9):
             for j in range(9):
-                if self.canvas.itemcget(f"block{i}_{j}", 'fill') != self.themes_list[self.current_theme][self.cells_colors[i][j]]:
-                    self.canvas.itemconfig(f"block{i}_{j}", fill=self.themes_list[self.current_theme][self.cells_colors[i][j]])
+                if self.canvas.itemcget(f"block{i}_{j}", 'fill') != self.THEMES_LIST[self.current_theme][self.cells_colors[i][j]]:
+                    self.canvas.itemconfig(f"block{i}_{j}", fill=self.THEMES_LIST[self.current_theme][self.cells_colors[i][j]])
                 n = "" if self.board[i][j] == 0 else str(self.board[i][j])
                 self.canvas.itemconfig(f"block{i}_{j}text", text=n)
 
@@ -413,7 +457,7 @@ class App:
         for i in range(9):
             for j in range(9):
                 font_color = 7 if self.board_first[i][j] != 0 else 8
-                self.canvas.itemconfig(f"block{i}_{j}text", fill=self.themes_list[self.current_theme][font_color])
+                self.canvas.itemconfig(f"block{i}_{j}text", fill=self.THEMES_LIST[self.current_theme][font_color])
         self.update_board()
         # make menu go up slowly
         self.move_menu(-20)
@@ -441,56 +485,56 @@ class App:
         Method to create difficulty choose screen
         """
         # create the background
-        self.canvas.create_rectangle(0, 0, self.width, self.height, 
-                                     fill=self.themes_list[self.current_theme][0], 
+        self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][0], 
                                      outline="", tags=("diff_panel"))
         # create the borders
-        self.canvas.create_rectangle(0, 0, self.border_width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(0, 0, self.BORDER_WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("diff_panel"))
-        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.WIDTH-self.BORDER_WIDTH, 0, self.WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("diff_panel"))
-        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.BORDER_WIDTH, 0, self.WIDTH-self.BORDER_WIDTH, self.BORDER_WIDTH, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("diff_panel"))
-        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, 
-                                     self.width-self.border_width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.BORDER_WIDTH, self.HEIGHT-self.BORDER_WIDTH, 
+                                     self.WIDTH-self.BORDER_WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("diff_panel"))
         # create resume game button if game save is in save.txt
         file = open(os.path.join(sys.path[0], "save.txt"), "r")
         L = [line.strip() for line in file.readlines()]
         file.close()
         if len(L) > 0:
-            self.canvas.create_rectangle(self.width//2-150, 80, self.width//2+150, 160,
-                                         fill=self.themes_list[self.current_theme][1], width=3,
+            self.canvas.create_rectangle(self.WIDTH//2-150, 80, self.WIDTH//2+150, 160,
+                                         fill=self.THEMES_LIST[self.current_theme][1], width=3,
                                          tags=("resume_game_btn", "diff_panel"))
-            self.canvas.create_text(self.width//2, 120, anchor='center', justify='center', 
+            self.canvas.create_text(self.WIDTH//2, 120, anchor='center', justify='center', 
                                     font=font.Font(family='Helvetica', size=32), state='disabled',
                                     text="Resume game", tags=("diff_panel"))
             self.canvas.tag_bind("resume_game_btn", "<Button-1>", lambda event: self.resume_game())
         # create difficulty buttons
-        self.canvas.create_text(self.width//2, 260, anchor='center', justify='center', 
+        self.canvas.create_text(self.WIDTH//2, 260, anchor='center', justify='center', 
                                 font=font.Font(family='Helvetica', size=40),
                                 text="Start new game", tags=("diff_panel"))
         link = lambda x: (lambda p: self.new_game(x))
         buttons_texts = ["Easy", "Medium", "Hard", "Expert"]
         for i in range(4):
-            self.canvas.create_rectangle(self.width//2-100, 320+i*100, self.width//2+100, 400+i*100,
-                                         fill=self.themes_list[self.current_theme][1], width=3, 
+            self.canvas.create_rectangle(self.WIDTH//2-100, 320+i*100, self.WIDTH//2+100, 400+i*100,
+                                         fill=self.THEMES_LIST[self.current_theme][1], width=3, 
                                          tags=("diff_panel", f"diff_btn_{i}"))
-            self.canvas.create_text(self.width//2, 360+i*100, anchor='center', justify='center', 
+            self.canvas.create_text(self.WIDTH//2, 360+i*100, anchor='center', justify='center', 
                                     font=font.Font(family='Helvetica', size=32), state='disabled',
                                     text=buttons_texts[i], tags=("diff_panel"))
             self.canvas.tag_bind(f"diff_btn_{i}", "<Button-1>", link(i))
         # create back button
         def back_to_menu() -> None:
             self.canvas.delete("diff_panel")
-        self.canvas.create_rectangle(20, self.height-60, 60, self.height-20,
-                                     fill=self.themes_list[self.current_theme][1], width=3,
+        self.canvas.create_rectangle(20, self.HEIGHT-60, 60, self.HEIGHT-20,
+                                     fill=self.THEMES_LIST[self.current_theme][1], width=3,
                                      tags=("diff_panel", "diff_btn_exit"))
-        self.canvas.create_text(40, self.height-40, anchor='center', justify='center', 
+        self.canvas.create_text(40, self.HEIGHT-40, anchor='center', justify='center', 
                                 font=font.Font(family='Helvetica', size=36), state='disabled',
                                 text="\u21E6", tags=("diff_panel"))
         self.canvas.tag_bind("diff_btn_exit", "<Button-1>", lambda event: back_to_menu())
@@ -500,37 +544,37 @@ class App:
         Method to create main menu
         """
         # create the background
-        self.canvas.create_rectangle(0, 0, self.width, self.height, 
-                                     fill=self.themes_list[self.current_theme][0], 
+        self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][0], 
                                      outline="", tags=("start_panel"))
         # create the borders
-        self.canvas.create_rectangle(0, 0, self.border_width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(0, 0, self.BORDER_WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.width-self.border_width, 0, self.width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.WIDTH-self.BORDER_WIDTH, 0, self.WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.border_width, 0, self.width-self.border_width, self.border_width, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.BORDER_WIDTH, 0, self.WIDTH-self.BORDER_WIDTH, self.BORDER_WIDTH, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("start_panel"))
-        self.canvas.create_rectangle(self.border_width, self.height-self.border_width, 
-                                     self.width-self.border_width, self.height, 
-                                     fill=self.themes_list[self.current_theme][1], 
+        self.canvas.create_rectangle(self.BORDER_WIDTH, self.HEIGHT-self.BORDER_WIDTH, 
+                                     self.WIDTH-self.BORDER_WIDTH, self.HEIGHT, 
+                                     fill=self.THEMES_LIST[self.current_theme][1], 
                                      outline="", tags=("start_panel"))
         # create buttons
-        self.canvas.create_rectangle(self.width//2-100, self.height//2-60, 
-                                     self.width//2+100, self.height//2+60,
-                                     fill=self.themes_list[self.current_theme][1],
+        self.canvas.create_rectangle(self.WIDTH//2-100, self.HEIGHT//2-60, 
+                                     self.WIDTH//2+100, self.HEIGHT//2+60,
+                                     fill=self.THEMES_LIST[self.current_theme][1],
                                      width=3, tags=("start_panel", "start_play_btn"))
-        self.canvas.create_rectangle(self.width//2-60, self.height-80,
-                                     self.width//2+60, self.height-40,
-                                     fill=self.themes_list[self.current_theme][1],
+        self.canvas.create_rectangle(self.WIDTH//2-60, self.HEIGHT-80,
+                                     self.WIDTH//2+60, self.HEIGHT-40,
+                                     fill=self.THEMES_LIST[self.current_theme][1],
                                      width=3, tags=("start_panel", "start_exit_btn"))
-        self.canvas.create_text(self.width//2, self.height//2, text="Play", 
+        self.canvas.create_text(self.WIDTH//2, self.HEIGHT//2, text="Play", 
                                 anchor='center', justify='center', 
                                 font=font.Font(family='Helvetica', size=36),
                                 state='disabled', tags=("start_panel"))
-        self.canvas.create_text(self.width//2, self.height-60, text="Exit", 
+        self.canvas.create_text(self.WIDTH//2, self.HEIGHT-60, text="Exit", 
                                 anchor='center', justify='center', 
                                 font=font.Font(family='Helvetica', size=24),
                                 state='disabled', tags=("start_panel"))
@@ -544,7 +588,7 @@ class App:
             flags[0] = True
         if len(self.canvas.find_withtag("diff_panel"))>0:
             flags[1] = True
-        for i in range(self.height//20):
+        for i in range(self.HEIGHT//20):
             if flags[0]: self.canvas.move("start_panel", 0, dir)
             if flags[1]: self.canvas.move("diff_panel", 0, dir)
             self.canvas.update()
